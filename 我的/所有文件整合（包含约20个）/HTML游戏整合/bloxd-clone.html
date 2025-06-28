@@ -1,0 +1,1385 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bloxd.io 起床战争克隆版</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#3B82F6',
+                        secondary: '#10B981',
+                        danger: '#EF4444',
+                        warning: '#F59E0B',
+                        info: '#6366F1',
+                        dark: '#1F2937',
+                        light: '#F3F4F6',
+                    },
+                    fontFamily: {
+                        game: ['Arial', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .content-auto {
+                content-visibility: auto;
+            }
+            .pixel-corners {
+                clip-path: polygon(
+                    0% 4px, 4px 4px, 4px 0%, calc(100% - 4px) 0%, 
+                    calc(100% - 4px) 4px, 100% 4px, 100% calc(100% - 4px), 
+                    calc(100% - 4px) calc(100% - 4px), calc(100% - 4px) 100%, 
+                    4px 100%, 4px calc(100% - 4px), 0% calc(100% - 4px)
+                );
+            }
+            .game-shadow {
+                box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.5),
+                            inset 0 0 0 2px rgba(255, 255, 255, 0.3);
+            }
+        }
+    </style>
+</head>
+<body class="bg-dark font-game text-light overflow-hidden m-0 p-0 h-screen flex flex-col">
+    <!-- 游戏加载界面 -->
+    <div id="loading-screen" class="fixed inset-0 bg-dark flex flex-col items-center justify-center z-50">
+        <div class="text-4xl font-bold mb-4 text-primary">BLOXD.IO 起床战争</div>
+        <div class="w-64 h-6 bg-dark border-2 border-primary rounded-sm overflow-hidden">
+            <div id="loading-bar" class="h-full bg-primary transition-all duration-300" style="width: 0%"></div>
+        </div>
+        <div id="loading-text" class="mt-4 text-light">加载资源中...</div>
+    </div>
+
+    <!-- 游戏界面 -->
+    <div id="game-container" class="hidden flex-1 relative">
+        <!-- 游戏画布 -->
+        <canvas id="game-canvas" class="absolute inset-0 w-full h-full bg-dark"></canvas>
+        
+        <!-- 游戏UI元素 -->
+        <div id="game-ui" class="absolute inset-0 pointer-events-none">
+            <!-- 左上角：队伍信息 -->
+            <div class="absolute top-4 left-4 bg-dark/80 p-2 rounded-md game-shadow pointer-events-auto">
+                <div class="flex items-center mb-2">
+                    <div class="w-4 h-4 rounded-full bg-primary mr-2"></div>
+                    <span>你的队伍</span>
+                </div>
+                <div id="team-members" class="text-sm space-y-1">
+                    <div class="flex items-center">
+                        <span class="w-16 truncate">你</span>
+                        <div class="ml-auto flex items-center">
+                            <i class="fa fa-bed text-secondary mr-1"></i>
+                            <span>存活</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 右上角：资源显示 -->
+            <div class="absolute top-4 right-4 bg-dark/80 p-2 rounded-md game-shadow pointer-events-auto">
+                <div class="flex items-center mb-1">
+                    <i class="fa fa-diamond text-blue-400 mr-2"></i>
+                    <span id="diamonds">0</span>
+                </div>
+                <div class="flex items-center mb-1">
+                    <i class="fa fa-cubes text-yellow-400 mr-2"></i>
+                    <span id="emeralds">0</span>
+                </div>
+                <div class="flex items-center">
+                    <i class="fa fa-shield text-gray-400 mr-2"></i>
+                    <span id="armor">0</span>
+                </div>
+            </div>
+            
+            <!-- 底部：物品栏 -->
+            <div class="absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-dark/80 p-2 rounded-md game-shadow pointer-events-auto">
+                <div id="hotbar" class="flex space-x-1">
+                    <div class="w-12 h-12 bg-gray-800/50 border border-gray-700 flex items-center justify-center rounded-sm hover:border-primary transition-colors">
+                        <i class="fa fa-cube text-white"></i>
+                    </div>
+                    <div class="w-12 h-12 bg-gray-800/50 border border-gray-700 flex items-center justify-center rounded-sm hover:border-primary transition-colors">
+                        <i class="fa fa-gavel text-white"></i>
+                    </div>
+                    <div class="w-12 h-12 bg-gray-800/50 border border-primary flex items-center justify-center rounded-sm">
+                        <i class="fa fa-sword text-white"></i>
+                    </div>
+                    <div class="w-12 h-12 bg-gray-800/50 border border-gray-700 flex items-center justify-center rounded-sm hover:border-primary transition-colors">
+                        <i class="fa fa-bomb text-white"></i>
+                    </div>
+                    <div class="w-12 h-12 bg-gray-800/50 border border-gray-700 flex items-center justify-center rounded-sm hover:border-primary transition-colors">
+                        <i class="fa fa-shield text-white"></i>
+                    </div>
+                    <div class="w-12 h-12 bg-gray-800/50 border border-gray-700 flex items-center justify-center rounded-sm hover:border-primary transition-colors">
+                        <i class="fa fa-bow text-white"></i>
+                    </div>
+                    <div class="w-12 h-12 bg-gray-800/50 border border-gray-700 flex items-center justify-center rounded-sm hover:border-primary transition-colors">
+                        <i class="fa fa-tnt text-white"></i>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 中间上方：游戏状态 -->
+            <div id="game-status" class="absolute top-1/4 left-1/2 transform -translate-x-1/2 bg-dark/80 px-4 py-2 rounded-md game-shadow pointer-events-auto hidden">
+                <span class="text-xl font-bold"></span>
+            </div>
+            
+            <!-- 生命值和饱食度 -->
+            <div class="absolute bottom-24 left-1/2 transform -translate-x-1/2 flex items-center space-x-4 bg-dark/80 px-4 py-2 rounded-md game-shadow pointer-events-auto">
+                <div class="flex items-center">
+                    <i class="fa fa-heart text-danger mr-2"></i>
+                    <div id="health-bar" class="w-32 h-3 bg-gray-800 rounded-sm overflow-hidden">
+                        <div class="h-full bg-danger transition-all duration-300" style="width: 100%"></div>
+                    </div>
+                    <span class="ml-2">20</span>
+                </div>
+                <div class="flex items-center">
+                    <i class="fa fa-cutlery text-warning mr-2"></i>
+                    <div id="hunger-bar" class="w-32 h-3 bg-gray-800 rounded-sm overflow-hidden">
+                        <div class="h-full bg-warning transition-all duration-300" style="width: 100%"></div>
+                    </div>
+                    <span class="ml-2">20</span>
+                </div>
+            </div>
+            
+            <!-- 死亡屏幕 -->
+            <div id="death-screen" class="absolute inset-0 bg-dark/90 flex flex-col items-center justify-center hidden">
+                <div class="text-4xl font-bold text-danger mb-4">你已死亡</div>
+                <div class="text-xl mb-6">你的床已被摧毁，无法重生</div>
+                <button id="respawn-button" class="bg-primary hover:bg-primary/80 text-white font-bold py-2 px-6 rounded-md transition-colors game-shadow pixel-corners">
+                    观看广告重生
+                </button>
+            </div>
+            
+            <!-- 游戏结束屏幕 -->
+            <div id="game-over-screen" class="absolute inset-0 bg-dark/90 flex flex-col items-center justify-center hidden">
+                <div id="winner-text" class="text-4xl font-bold mb-6"></div>
+                <button id="play-again-button" class="bg-primary hover:bg-primary/80 text-white font-bold py-2 px-6 rounded-md transition-colors game-shadow pixel-corners">
+                    再来一局
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 主菜单 -->
+    <div id="main-menu" class="fixed inset-0 bg-dark flex flex-col items-center justify-center">
+        <div class="text-5xl font-bold mb-8 text-primary">BLOXD.IO 起床战争</div>
+        
+        <div class="w-80 bg-dark/80 p-6 rounded-md game-shadow">
+            <div class="mb-6">
+                <label class="block text-light mb-2">你的昵称</label>
+                <input id="player-name" type="text" class="w-full bg-gray-800 border border-gray-700 text-light py-2 px-3 rounded-md focus:outline-none focus:border-primary transition-colors" placeholder="输入你的昵称">
+            </div>
+            
+            <div class="mb-6">
+                <label class="block text-light mb-2">选择队伍颜色</label>
+                <div class="flex space-x-2">
+                    <div class="w-8 h-8 rounded-full bg-red-500 cursor-pointer hover:ring-2 hover:ring-white transition-all team-color" data-color="red"></div>
+                    <div class="w-8 h-8 rounded-full bg-blue-500 cursor-pointer hover:ring-2 hover:ring-white transition-all team-color selected" data-color="blue"></div>
+                    <div class="w-8 h-8 rounded-full bg-green-500 cursor-pointer hover:ring-2 hover:ring-white transition-all team-color" data-color="green"></div>
+                    <div class="w-8 h-8 rounded-full bg-yellow-500 cursor-pointer hover:ring-2 hover:ring-white transition-all team-color" data-color="yellow"></div>
+                    <div class="w-8 h-8 rounded-full bg-purple-500 cursor-pointer hover:ring-2 hover:ring-white transition-all team-color" data-color="purple"></div>
+                    <div class="w-8 h-8 rounded-full bg-pink-500 cursor-pointer hover:ring-2 hover:ring-white transition-all team-color" data-color="pink"></div>
+                </div>
+            </div>
+            
+            <div class="mb-6">
+                <label class="block text-light mb-2">游戏模式</label>
+                <select id="game-mode" class="w-full bg-gray-800 border border-gray-700 text-light py-2 px-3 rounded-md focus:outline-none focus:border-primary transition-colors">
+                    <option value="solo">单人模式</option>
+                    <option value="doubles">双人模式</option>
+                    <option value="teams">四人团队</option>
+                </select>
+            </div>
+            
+            <button id="start-game" class="w-full bg-primary hover:bg-primary/80 text-white font-bold py-3 px-6 rounded-md transition-colors game-shadow pixel-corners">
+                开始游戏
+            </button>
+            
+            <div class="mt-4 text-center text-sm text-gray-400">
+                <p>使用WASD移动</p>
+                <p>鼠标左键攻击/破坏方块</p>
+                <p>鼠标右键放置方块</p>
+                <p>数字键1-7选择物品</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 游戏常量
+        const TILE_SIZE = 32;
+        const MAP_WIDTH = 30;
+        const MAP_HEIGHT = 30;
+        const RESOURCE_TYPES = {
+            WOOD: { color: '#8B4513', value: 1 },
+            STONE: { color: '#A9A9A9', value: 2 },
+            IRON: { color: '#C0C0C0', value: 3 },
+            GOLD: { color: '#FFD700', value: 4 },
+            DIAMOND: { color: '#B0E2FF', value: 5 },
+            EMERALD: { color: '#50C878', value: 6 }
+        };
+        const TEAM_COLORS = {
+            red: '#EF4444',
+            blue: '#3B82F6',
+            green: '#10B981',
+            yellow: '#F59E0B',
+            purple: '#8B5CF6',
+            pink: '#EC4899'
+        };
+
+        // 游戏状态
+        let gameState = {
+            map: [],
+            players: [],
+            beds: [],
+            resources: [],
+            projectiles: [],
+            explosions: [],
+            player: {
+                x: 0,
+                y: 0,
+                width: TILE_SIZE * 0.8,
+                height: TILE_SIZE * 1.5,
+                speed: 4,
+                health: 20,
+                maxHealth: 20,
+                hunger: 20,
+                maxHunger: 20,
+                team: 'blue',
+                name: '玩家',
+                direction: 'down',
+                isMoving: false,
+                attacking: false,
+                attackCooldown: 0,
+                armor: 0,
+                inventory: [
+                    { type: 'block', count: 64 },
+                    { type: 'pickaxe', level: 1 },
+                    { type: 'sword', level: 1 },
+                    { type: 'tnt', count: 3 },
+                    { type: 'shield', level: 0 },
+                    { type: 'bow', level: 0, arrows: 10 },
+                    { type: 'special', count: 1 }
+                ],
+                selectedItem: 2
+            },
+            camera: {
+                x: 0,
+                y: 0
+            },
+            gameStarted: false,
+            gameOver: false,
+            winner: null
+        };
+
+        // DOM元素
+        const loadingScreen = document.getElementById('loading-screen');
+        const loadingBar = document.getElementById('loading-bar');
+        const loadingText = document.getElementById('loading-text');
+        const gameContainer = document.getElementById('game-container');
+        const gameCanvas = document.getElementById('game-canvas');
+        const mainMenu = document.getElementById('main-menu');
+        const playerNameInput = document.getElementById('player-name');
+        const teamColorElements = document.querySelectorAll('.team-color');
+        const startGameButton = document.getElementById('start-game');
+        const gameStatus = document.getElementById('game-status');
+        const deathScreen = document.getElementById('death-screen');
+        const respawnButton = document.getElementById('respawn-button');
+        const gameOverScreen = document.getElementById('game-over-screen');
+        const winnerText = document.getElementById('winner-text');
+        const playAgainButton = document.getElementById('play-again-button');
+        const healthBar = document.getElementById('health-bar').querySelector('div');
+        const hungerBar = document.getElementById('hunger-bar').querySelector('div');
+        const healthValue = document.getElementById('health-bar').nextElementSibling;
+        const hungerValue = document.getElementById('hunger-bar').nextElementSibling;
+        const diamondsCount = document.getElementById('diamonds');
+        const emeraldsCount = document.getElementById('emeralds');
+        const armorCount = document.getElementById('armor');
+
+        // 游戏初始化
+        function initGame() {
+            // 设置Canvas
+            const ctx = gameCanvas.getContext('2d');
+            
+            // 加载资源
+            let loadedResources = 0;
+            const totalResources = 10; // 假设有10个资源需要加载
+            
+            function updateLoadingProgress() {
+                loadedResources++;
+                const progress = (loadedResources / totalResources) * 100;
+                loadingBar.style.width = `${progress}%`;
+                
+                if (loadedResources === totalResources) {
+                    setTimeout(() => {
+                        loadingScreen.classList.add('opacity-0', 'pointer-events-none');
+                        setTimeout(() => {
+                            loadingScreen.classList.add('hidden');
+                        }, 500);
+                    }, 500);
+                }
+            }
+            
+            // 模拟资源加载
+            const resourceNames = ['地图', '玩家模型', '床', '方块', '武器', 'UI', '粒子效果', '音效', '背景音乐', '字体'];
+            resourceNames.forEach((name, index) => {
+                setTimeout(() => {
+                    loadingText.textContent = `加载资源: ${name} (${index + 1}/${totalResources})`;
+                    updateLoadingProgress();
+                }, 200 * (index + 1));
+            });
+            
+            // 设置事件监听
+            setupEventListeners();
+            
+            // 生成地图
+            generateMap();
+            
+            // 开始游戏循环
+            requestAnimationFrame(gameLoop);
+        }
+
+        // 设置事件监听
+        function setupEventListeners() {
+            // 主菜单事件
+            startGameButton.addEventListener('click', () => {
+                const playerName = playerNameInput.value.trim() || '玩家';
+                gameState.player.name = playerName;
+                
+                mainMenu.classList.add('opacity-0', 'pointer-events-none');
+                setTimeout(() => {
+                    mainMenu.classList.add('hidden');
+                    gameContainer.classList.remove('hidden');
+                    gameState.gameStarted = true;
+                    
+                    // 显示游戏开始提示
+                    showGameStatus('游戏开始！', 2000);
+                }, 500);
+            });
+            
+            // 选择队伍颜色
+            teamColorElements.forEach(element => {
+                element.addEventListener('click', () => {
+                    teamColorElements.forEach(el => el.classList.remove('selected', 'ring-2', 'ring-white'));
+                    element.classList.add('selected', 'ring-2', 'ring-white');
+                    gameState.player.team = element.dataset.color;
+                });
+            });
+            
+            // 键盘控制
+            const keys = {};
+            window.addEventListener('keydown', e => {
+                keys[e.key.toLowerCase()] = true;
+                
+                // 选择物品栏
+                if (e.key >= '1' && e.key <= '7') {
+                    gameState.player.selectedItem = parseInt(e.key) - 1;
+                }
+                
+                // 空格跳跃
+                if (e.key === ' ') {
+                    // 这里可以实现跳跃逻辑
+                }
+            });
+            
+            window.addEventListener('keyup', e => {
+                keys[e.key.toLowerCase()] = false;
+            });
+            
+            // 鼠标控制
+            gameCanvas.addEventListener('mousedown', e => {
+                if (e.button === 0) { // 左键
+                    gameState.player.attacking = true;
+                    gameState.player.attackCooldown = 15; // 攻击冷却
+                } else if (e.button === 2) { // 右键
+                    // 放置方块逻辑
+                }
+            });
+            
+            // 阻止右键菜单
+            gameCanvas.addEventListener('contextmenu', e => {
+                e.preventDefault();
+            });
+            
+            // 重生按钮
+            respawnButton.addEventListener('click', () => {
+                // 在实际游戏中，这里应该有广告逻辑
+                respawnPlayer();
+            });
+            
+            // 再来一局按钮
+            playAgainButton.addEventListener('click', () => {
+                resetGame();
+                gameOverScreen.classList.add('hidden');
+                showGameStatus('新游戏开始！', 2000);
+            });
+            
+            // 鼠标移动控制视角
+            gameCanvas.addEventListener('mousemove', e => {
+                const rect = gameCanvas.getBoundingClientRect();
+                const mouseX = e.clientX - rect.left;
+                const mouseY = e.clientY - rect.top;
+                
+                const centerX = gameCanvas.width / 2;
+                const centerY = gameCanvas.height / 2;
+                
+                // 根据鼠标位置确定玩家朝向
+                if (Math.abs(mouseX - centerX) > Math.abs(mouseY - centerY)) {
+                    gameState.player.direction = mouseX > centerX ? 'right' : 'left';
+                } else {
+                    gameState.player.direction = mouseY > centerY ? 'down' : 'up';
+                }
+            });
+            
+            // 更新游戏状态
+            function updatePlayerMovement() {
+                const { player } = gameState;
+                player.isMoving = false;
+                
+                if (keys['w']) {
+                    player.y -= player.speed;
+                    player.isMoving = true;
+                }
+                if (keys['s']) {
+                    player.y += player.speed;
+                    player.isMoving = true;
+                }
+                if (keys['a']) {
+                    player.x -= player.speed;
+                    player.isMoving = true;
+                }
+                if (keys['d']) {
+                    player.x += player.speed;
+                    player.isMoving = true;
+                }
+                
+                // 更新相机位置跟随玩家
+                gameState.camera.x = player.x - gameCanvas.width / 2 + player.width / 2;
+                gameState.camera.y = player.y - gameCanvas.height / 2 + player.height / 2;
+                
+                // 边界检查
+                if (player.x < 0) player.x = 0;
+                if (player.y < 0) player.y = 0;
+                if (player.x > MAP_WIDTH * TILE_SIZE - player.width) {
+                    player.x = MAP_WIDTH * TILE_SIZE - player.width;
+                }
+                if (player.y > MAP_HEIGHT * TILE_SIZE - player.height) {
+                    player.y = MAP_HEIGHT * TILE_SIZE - player.height;
+                }
+                
+                // 更新攻击冷却
+                if (player.attackCooldown > 0) {
+                    player.attackCooldown--;
+                    if (player.attackCooldown === 0) {
+                        player.attacking = false;
+                    }
+                }
+                
+                // 饥饿值减少
+                if (player.hunger > 0 && player.isMoving) {
+                    if (Math.random() < 0.01) { // 随机减少饥饿值
+                        player.hunger -= 0.1;
+                        updateHUD();
+                    }
+                }
+                
+                // 饥饿值影响生命值
+                if (player.hunger <= 0) {
+                    if (Math.random() < 0.02) { // 随机减少生命值
+                        player.health -= 0.5;
+                        updateHUD();
+                        
+                        if (player.health <= 0) {
+                            playerDied();
+                        }
+                    }
+                }
+            }
+            
+            // 游戏循环
+            function gameLoop() {
+                const ctx = gameCanvas.getContext('2d');
+                
+                // 调整Canvas尺寸以匹配窗口
+                if (gameCanvas.width !== gameContainer.clientWidth || 
+                    gameCanvas.height !== gameContainer.clientHeight) {
+                    gameCanvas.width = gameContainer.clientWidth;
+                    gameCanvas.height = gameContainer.clientHeight;
+                }
+                
+                // 清空画布
+                ctx.fillStyle = '#0f172a';
+                ctx.fillRect(0, 0, gameCanvas.width, gameCanvas.height);
+                
+                if (gameState.gameStarted && !gameState.gameOver) {
+                    // 更新玩家移动
+                    updatePlayerMovement();
+                    
+                    // 更新资源收集
+                    updateResourceCollection();
+                    
+                    // 更新项目
+                    updateProjectiles();
+                    
+                    // 更新爆炸效果
+                    updateExplosions();
+                    
+                    // 渲染游戏
+                    renderGame(ctx);
+                }
+                
+                requestAnimationFrame(gameLoop);
+            }
+        }
+
+        // 生成地图
+        function generateMap() {
+            // 初始化空地图
+            gameState.map = Array(MAP_HEIGHT).fill().map(() => Array(MAP_WIDTH).fill(0));
+            
+            // 生成边界墙
+            for (let x = 0; x < MAP_WIDTH; x++) {
+                gameState.map[0][x] = 1; // 顶部边界
+                gameState.map[MAP_HEIGHT - 1][x] = 1; // 底部边界
+            }
+            for (let y = 0; y < MAP_HEIGHT; y++) {
+                gameState.map[y][0] = 1; // 左侧边界
+                gameState.map[y][MAP_WIDTH - 1] = 1; // 右侧边界
+            }
+            
+            // 生成中间平台
+            const platformSize = 10;
+            const centerX = Math.floor(MAP_WIDTH / 2);
+            const centerY = Math.floor(MAP_HEIGHT / 2);
+            
+            for (let y = centerY - platformSize; y <= centerY + platformSize; y++) {
+                for (let x = centerX - platformSize; x <= centerX + platformSize; x++) {
+                    if (y >= 0 && y < MAP_HEIGHT && x >= 0 && x < MAP_WIDTH) {
+                        gameState.map[y][x] = 2; // 中间平台
+                    }
+                }
+            }
+            
+            // 生成资源点
+            generateResources();
+            
+            // 生成床和队伍基地
+            generateTeams();
+            
+            // 设置玩家初始位置
+            const teamBase = gameState.beds.find(bed => bed.team === gameState.player.team);
+            if (teamBase) {
+                gameState.player.x = teamBase.x * TILE_SIZE + TILE_SIZE / 2;
+                gameState.player.y = teamBase.y * TILE_SIZE - TILE_SIZE * 2;
+            } else {
+                // 默认位置
+                gameState.player.x = centerX * TILE_SIZE;
+                gameState.player.y = centerY * TILE_SIZE;
+            }
+        }
+
+        // 生成资源点
+        function generateResources() {
+            const { WOOD, STONE, IRON, GOLD, DIAMOND, EMERALD } = RESOURCE_TYPES;
+            
+            // 木材资源
+            for (let i = 0; i < 20; i++) {
+                const x = Math.floor(Math.random() * (MAP_WIDTH - 4)) + 2;
+                const y = Math.floor(Math.random() * (MAP_HEIGHT - 4)) + 2;
+                
+                if (gameState.map[y][x] === 0) {
+                    gameState.resources.push({
+                        x, y, type: 'wood', value: WOOD.value, 
+                        color: WOOD.color, respawnTimer: 0
+                    });
+                }
+            }
+            
+            // 石头资源
+            for (let i = 0; i < 15; i++) {
+                const x = Math.floor(Math.random() * (MAP_WIDTH - 4)) + 2;
+                const y = Math.floor(Math.random() * (MAP_HEIGHT - 4)) + 2;
+                
+                if (gameState.map[y][x] === 0) {
+                    gameState.resources.push({
+                        x, y, type: 'stone', value: STONE.value, 
+                        color: STONE.color, respawnTimer: 0
+                    });
+                }
+            }
+            
+            // 铁资源
+            for (let i = 0; i < 10; i++) {
+                const x = Math.floor(Math.random() * (MAP_WIDTH - 4)) + 2;
+                const y = Math.floor(Math.random() * (MAP_HEIGHT - 4)) + 2;
+                
+                if (gameState.map[y][x] === 0) {
+                    gameState.resources.push({
+                        x, y, type: 'iron', value: IRON.value, 
+                        color: IRON.color, respawnTimer: 0
+                    });
+                }
+            }
+            
+            // 金资源
+            for (let i = 0; i < 5; i++) {
+                const x = Math.floor(Math.random() * (MAP_WIDTH - 4)) + 2;
+                const y = Math.floor(Math.random() * (MAP_HEIGHT - 4)) + 2;
+                
+                if (gameState.map[y][x] === 0) {
+                    gameState.resources.push({
+                        x, y, type: 'gold', value: GOLD.value, 
+                        color: GOLD.color, respawnTimer: 0
+                    });
+                }
+            }
+            
+            // 钻石资源
+            for (let i = 0; i < 3; i++) {
+                const x = Math.floor(Math.random() * (MAP_WIDTH - 4)) + 2;
+                const y = Math.floor(Math.random() * (MAP_HEIGHT - 4)) + 2;
+                
+                if (gameState.map[y][x] === 0) {
+                    gameState.resources.push({
+                        x, y, type: 'diamond', value: DIAMOND.value, 
+                        color: DIAMOND.color, respawnTimer: 0
+                    });
+                }
+            }
+            
+            // 绿宝石资源
+            for (let i = 0; i < 2; i++) {
+                const x = Math.floor(Math.random() * (MAP_WIDTH - 4)) + 2;
+                const y = Math.floor(Math.random() * (MAP_HEIGHT - 4)) + 2;
+                
+                if (gameState.map[y][x] === 0) {
+                    gameState.resources.push({
+                        x, y, type: 'emerald', value: EMERALD.value, 
+                        color: EMERALD.color, respawnTimer: 0
+                    });
+                }
+            }
+        }
+
+        // 生成队伍和床
+        function generateTeams() {
+            // 队伍颜色和位置
+            const teamPositions = [
+                { team: 'red', x: 5, y: 5 },
+                { team: 'blue', x: MAP_WIDTH - 6, y: 5 },
+                { team: 'green', x: 5, y: MAP_HEIGHT - 6 },
+                { team: 'yellow', x: MAP_WIDTH - 6, y: MAP_HEIGHT - 6 }
+            ];
+            
+            // 为每个队伍创建床和基地
+            teamPositions.forEach(pos => {
+                // 床
+                gameState.beds.push({
+                    x: pos.x,
+                    y: pos.y,
+                    team: pos.team,
+                    color: TEAM_COLORS[pos.team],
+                    destroyed: false
+                });
+                
+                // 基地平台
+                for (let y = pos.y - 1; y <= pos.y + 1; y++) {
+                    for (let x = pos.x - 1; x <= pos.x + 1; x++) {
+                        if (x >= 0 && x < MAP_WIDTH && y >= 0 && y < MAP_HEIGHT) {
+                            gameState.map[y][x] = 3; // 基地平台
+                        }
+                    }
+                }
+            });
+        }
+
+        // 渲染游戏
+        function renderGame(ctx) {
+            const { camera, player } = gameState;
+            
+            // 渲染地图
+            renderMap(ctx);
+            
+            // 渲染资源
+            renderResources(ctx);
+            
+            // 渲染床
+            renderBeds(ctx);
+            
+            // 渲染其他玩家（在实际游戏中，这里会渲染多个玩家）
+            renderOtherPlayers(ctx);
+            
+            // 渲染项目
+            renderProjectiles(ctx);
+            
+            // 渲染爆炸效果
+            renderExplosions(ctx);
+            
+            // 渲染玩家
+            renderPlayer(ctx);
+            
+            // 渲染攻击效果
+            if (player.attacking) {
+                renderAttack(ctx);
+            }
+            
+            // 渲染鼠标指针
+            renderCursor(ctx);
+        }
+
+        // 渲染地图
+        function renderMap(ctx) {
+            const { camera } = gameState;
+            
+            // 计算可见区域
+            const startX = Math.floor(camera.x / TILE_SIZE);
+            const startY = Math.floor(camera.y / TILE_SIZE);
+            const endX = Math.ceil((camera.x + gameCanvas.width) / TILE_SIZE);
+            const endY = Math.ceil((camera.y + gameCanvas.height) / TILE_SIZE);
+            
+            // 渲染地图瓦片
+            for (let y = startY; y < endY; y++) {
+                for (let x = startX; x < endX; x++) {
+                    if (y >= 0 && y < MAP_HEIGHT && x >= 0 && x < MAP_WIDTH) {
+                        const tileX = x * TILE_SIZE - camera.x;
+                        const tileY = y * TILE_SIZE - camera.y;
+                        
+                        // 根据瓦片类型设置颜色
+                        let color;
+                        switch (gameState.map[y][x]) {
+                            case 0: // 空气
+                                color = '#0f172a';
+                                break;
+                            case 1: // 边界墙
+                                color = '#374151';
+                                break;
+                            case 2: // 中间平台
+                                color = '#9ca3af';
+                                break;
+                            case 3: // 基地平台
+                                color = '#64748b';
+                                break;
+                            default:
+                                color = '#1f2937';
+                        }
+                        
+                        // 绘制瓦片
+                        ctx.fillStyle = color;
+                        ctx.fillRect(tileX, tileY, TILE_SIZE, TILE_SIZE);
+                        
+                        // 添加边框
+                        ctx.strokeStyle = 'rgba(0, 0, 0, 0.2)';
+                        ctx.lineWidth = 1;
+                        ctx.strokeRect(tileX, tileY, TILE_SIZE, TILE_SIZE);
+                    }
+                }
+            }
+        }
+
+        // 渲染资源
+        function renderResources(ctx) {
+            const { camera } = gameState;
+            
+            gameState.resources.forEach(resource => {
+                if (resource.respawnTimer <= 0) {
+                    const screenX = resource.x * TILE_SIZE - camera.x;
+                    const screenY = resource.y * TILE_SIZE - camera.y;
+                    
+                    // 绘制资源
+                    ctx.fillStyle = resource.color;
+                    ctx.fillRect(screenX, screenY, TILE_SIZE * 0.8, TILE_SIZE * 0.8);
+                    
+                    // 添加光泽效果
+                    ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
+                    ctx.fillRect(screenX, screenY, TILE_SIZE * 0.8, TILE_SIZE * 0.2);
+                    
+                    // 添加资源类型标识
+                    ctx.fillStyle = 'white';
+                    ctx.font = '10px Arial';
+                    ctx.textAlign = 'center';
+                    ctx.fillText(resource.type.charAt(0).toUpperCase(), 
+                                screenX + TILE_SIZE * 0.4, 
+                                screenY + TILE_SIZE * 0.55);
+                }
+            });
+        }
+
+        // 渲染床
+        function renderBeds(ctx) {
+            const { camera } = gameState;
+            
+            gameState.beds.forEach(bed => {
+                const screenX = bed.x * TILE_SIZE - camera.x;
+                const screenY = bed.y * TILE_SIZE - camera.y;
+                
+                if (!bed.destroyed) {
+                    // 绘制床
+                    ctx.fillStyle = bed.color;
+                    ctx.fillRect(screenX, screenY, TILE_SIZE, TILE_SIZE * 0.6);
+                    
+                    // 床的头部
+                    ctx.fillStyle = darkenColor(bed.color, 20);
+                    ctx.fillRect(screenX, screenY, TILE_SIZE, TILE_SIZE * 0.2);
+                    
+                    // 添加光泽效果
+                    ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
+                    ctx.fillRect(screenX, screenY, TILE_SIZE, TILE_SIZE * 0.1);
+                } else {
+                    // 绘制被摧毁的床
+                    ctx.fillStyle = '#4b5563';
+                    ctx.fillRect(screenX, screenY, TILE_SIZE, TILE_SIZE * 0.2);
+                    
+                    // 交叉线表示被摧毁
+                    ctx.strokeStyle = '#1f2937';
+                    ctx.lineWidth = 2;
+                    ctx.beginPath();
+                    ctx.moveTo(screenX, screenY);
+                    ctx.lineTo(screenX + TILE_SIZE, screenY + TILE_SIZE * 0.2);
+                    ctx.moveTo(screenX + TILE_SIZE, screenY);
+                    ctx.lineTo(screenX, screenY + TILE_SIZE * 0.2);
+                    ctx.stroke();
+                }
+            });
+        }
+
+        // 渲染其他玩家
+        function renderOtherPlayers(ctx) {
+            const { camera } = gameState;
+            
+            // 在实际游戏中，这里会渲染所有其他玩家
+            // 现在我们只渲染一个简单的敌方玩家作为示例
+            const enemy = {
+                x: 15 * TILE_SIZE,
+                y: 15 * TILE_SIZE,
+                width: TILE_SIZE * 0.8,
+                height: TILE_SIZE * 1.5,
+                team: 'red',
+                name: '敌人',
+                health: 20,
+                maxHealth: 20,
+                direction: 'down'
+            };
+            
+            const screenX = enemy.x - camera.x;
+            const screenY = enemy.y - camera.y;
+            
+            // 绘制玩家身体
+            ctx.fillStyle = TEAM_COLORS[enemy.team];
+            ctx.fillRect(screenX, screenY, enemy.width, enemy.height);
+            
+            // 绘制头部
+            ctx.fillStyle = darkenColor(TEAM_COLORS[enemy.team], 20);
+            ctx.fillRect(screenX, screenY, enemy.width, enemy.height * 0.3);
+            
+            // 绘制眼睛
+            ctx.fillStyle = 'white';
+            const eyeSize = enemy.width * 0.15;
+            const eyeY = screenY + enemy.height * 0.1;
+            ctx.fillRect(screenX + enemy.width * 0.3 - eyeSize/2, eyeY, eyeSize, eyeSize);
+            ctx.fillRect(screenX + enemy.width * 0.7 - eyeSize/2, eyeY, eyeSize, eyeSize);
+            
+            // 绘制方向指示
+            ctx.fillStyle = 'white';
+            ctx.font = '10px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText(enemy.direction.charAt(0).toUpperCase(), 
+                        screenX + enemy.width/2, 
+                        screenY + enemy.height * 0.5);
+            
+            // 绘制名字
+            ctx.fillStyle = 'white';
+            ctx.font = '10px Arial';
+            ctx.fillText(enemy.name, screenX + enemy.width/2, screenY - 5);
+            
+            // 绘制生命值条
+            const healthBarWidth = enemy.width;
+            const healthBarHeight = 5;
+            const healthPercentage = enemy.health / enemy.maxHealth;
+            
+            // 背景
+            ctx.fillStyle = '#4b5563';
+            ctx.fillRect(screenX, screenY - 10, healthBarWidth, healthBarHeight);
+            
+            // 生命值
+            ctx.fillStyle = healthPercentage > 0.5 ? '#10B981' : 
+                           healthPercentage > 0.25 ? '#F59E0B' : '#EF4444';
+            ctx.fillRect(screenX, screenY - 10, healthBarWidth * healthPercentage, healthBarHeight);
+        }
+
+        // 渲染玩家
+        function renderPlayer(ctx) {
+            const { player, camera } = gameState;
+            
+            const screenX = player.x - camera.x;
+            const screenY = player.y - camera.y;
+            
+            // 绘制玩家身体
+            ctx.fillStyle = TEAM_COLORS[player.team];
+            ctx.fillRect(screenX, screenY, player.width, player.height);
+            
+            // 绘制头部
+            ctx.fillStyle = darkenColor(TEAM_COLORS[player.team], 20);
+            ctx.fillRect(screenX, screenY, player.width, player.height * 0.3);
+            
+            // 绘制眼睛
+            ctx.fillStyle = 'white';
+            const eyeSize = player.width * 0.15;
+            const eyeY = screenY + player.height * 0.1;
+            
+            if (player.direction === 'left') {
+                ctx.fillRect(screenX + player.width * 0.25 - eyeSize/2, eyeY, eyeSize, eyeSize);
+                ctx.fillRect(screenX + player.width * 0.45 - eyeSize/2, eyeY, eyeSize, eyeSize);
+            } else if (player.direction === 'right') {
+                ctx.fillRect(screenX + player.width * 0.55 - eyeSize/2, eyeY, eyeSize, eyeSize);
+                ctx.fillRect(screenX + player.width * 0.75 - eyeSize/2, eyeY, eyeSize, eyeSize);
+            } else {
+                ctx.fillRect(screenX + player.width * 0.3 - eyeSize/2, eyeY, eyeSize, eyeSize);
+                ctx.fillRect(screenX + player.width * 0.7 - eyeSize/2, eyeY, eyeSize, eyeSize);
+            }
+            
+            // 绘制方向指示
+            ctx.fillStyle = 'white';
+            ctx.font = '10px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText(player.direction.charAt(0).toUpperCase(), 
+                        screenX + player.width/2, 
+                        screenY + player.height * 0.5);
+            
+            // 绘制名字
+            ctx.fillStyle = 'white';
+            ctx.font = '10px Arial';
+            ctx.fillText(player.name, screenX + player.width/2, screenY - 5);
+            
+            // 绘制生命值条
+            const healthBarWidth = player.width;
+            const healthBarHeight = 5;
+            const healthPercentage = player.health / player.maxHealth;
+            
+            // 背景
+            ctx.fillStyle = '#4b5563';
+            ctx.fillRect(screenX, screenY - 10, healthBarWidth, healthBarHeight);
+            
+            // 生命值
+            ctx.fillStyle = healthPercentage > 0.5 ? '#10B981' : 
+                           healthPercentage > 0.25 ? '#F59E0B' : '#EF4444';
+            ctx.fillRect(screenX, screenY - 10, healthBarWidth * healthPercentage, healthBarHeight);
+            
+            // 绘制饱食度条
+            const hungerBarWidth = player.width;
+            const hungerBarHeight = 3;
+            const hungerPercentage = player.hunger / player.maxHunger;
+            
+            // 背景
+            ctx.fillStyle = '#4b5563';
+            ctx.fillRect(screenX, screenY - 15, hungerBarWidth, hungerBarHeight);
+            
+            // 饱食度
+            ctx.fillStyle = '#F59E0B';
+            ctx.fillRect(screenX, screenY - 15, hungerBarWidth * hungerPercentage, hungerBarHeight);
+            
+            // 绘制装备
+            const selectedItem = player.inventory[player.selectedItem];
+            if (selectedItem) {
+                let itemColor;
+                switch (selectedItem.type) {
+                    case 'sword':
+                        itemColor = '#C0C0C0';
+                        break;
+                    case 'pickaxe':
+                        itemColor = '#A9A9A9';
+                        break;
+                    case 'block':
+                        itemColor = '#8B4513';
+                        break;
+                    case 'tnt':
+                        itemColor = '#DC2626';
+                        break;
+                    case 'shield':
+                        itemColor = '#3B82F6';
+                        break;
+                    case 'bow':
+                        itemColor = '#8B4513';
+                        break;
+                    default:
+                        itemColor = '#F59E0B';
+                }
+                
+                // 绘制手持物品
+                ctx.fillStyle = itemColor;
+                if (player.direction === 'right') {
+                    ctx.fillRect(screenX + player.width, screenY + player.height * 0.3, 
+                                player.width * 0.3, player.height * 0.4);
+                } else if (player.direction === 'left') {
+                    ctx.fillRect(screenX - player.width * 0.3, screenY + player.height * 0.3, 
+                                player.width * 0.3, player.height * 0.4);
+                } else if (player.direction === 'up') {
+                    ctx.fillRect(screenX + player.width * 0.3, screenY - player.height * 0.3, 
+                                player.width * 0.4, player.height * 0.3);
+                } else {
+                    ctx.fillRect(screenX + player.width * 0.3, screenY + player.height, 
+                                player.width * 0.4, player.height * 0.3);
+                }
+            }
+        }
+
+        // 渲染攻击效果
+        function renderAttack(ctx) {
+            const { player, camera } = gameState;
+            
+            const screenX = player.x - camera.x;
+            const screenY = player.y - camera.y;
+            const attackSize = TILE_SIZE * 0.7;
+            
+            ctx.fillStyle = 'rgba(255, 215, 0, 0.7)';
+            
+            if (player.direction === 'right') {
+                ctx.fillRect(screenX + player.width, screenY + player.height * 0.2, 
+                            attackSize, player.height * 0.6);
+            } else if (player.direction === 'left') {
+                ctx.fillRect(screenX - attackSize, screenY + player.height * 0.2, 
+                            attackSize, player.height * 0.6);
+            } else if (player.direction === 'up') {
+                ctx.fillRect(screenX + player.width * 0.2, screenY - attackSize, 
+                            player.width * 0.6, attackSize);
+            } else {
+                ctx.fillRect(screenX + player.width * 0.2, screenY + player.height, 
+                            player.width * 0.6, attackSize);
+            }
+        }
+
+        // 渲染项目
+        function renderProjectiles(ctx) {
+            const { camera } = gameState;
+            
+            gameState.projectiles.forEach(projectile => {
+                const screenX = projectile.x - camera.x;
+                const screenY = projectile.y - camera.y;
+                
+                // 绘制箭矢
+                ctx.fillStyle = '#8B4513';
+                ctx.beginPath();
+                ctx.moveTo(screenX, screenY);
+                ctx.lineTo(screenX + projectile.width, screenY + projectile.height/2);
+                ctx.lineTo(screenX, screenY + projectile.height);
+                ctx.closePath();
+                ctx.fill();
+                
+                // 箭矢尾翼
+                ctx.fillStyle = '#1f2937';
+                ctx.beginPath();
+                ctx.moveTo(screenX, screenY + projectile.height/4);
+                ctx.lineTo(screenX - projectile.width/3, screenY + projectile.height/2);
+                ctx.lineTo(screenX, screenY + projectile.height*3/4);
+                ctx.closePath();
+                ctx.fill();
+            });
+        }
+
+        // 渲染爆炸效果
+        function renderExplosions(ctx) {
+            const { camera } = gameState;
+            
+            gameState.explosions.forEach(explosion => {
+                const screenX = explosion.x - camera.x;
+                const screenY = explosion.y - camera.y;
+                const radius = explosion.radius * (1 - explosion.progress);
+                
+                // 爆炸光圈
+                ctx.fillStyle = `rgba(255, 165, 0, ${0.7 - explosion.progress})`;
+                ctx.beginPath();
+                ctx.arc(screenX, screenY, radius, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // 爆炸冲击波
+                ctx.strokeStyle = `rgba(255, 69, 0, ${0.8 - explosion.progress})`;
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+                ctx.arc(screenX, screenY, radius + 10, 0, Math.PI * 2);
+                ctx.stroke();
+            });
+        }
+
+        // 渲染鼠标指针
+        function renderCursor(ctx) {
+            // 获取鼠标在游戏世界中的位置
+            const mouseX = gameCanvas.width / 2;
+            const mouseY = gameCanvas.height / 2;
+            
+            // 绘制十字准星
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.7)';
+            ctx.lineWidth = 2;
+            
+            // 水平线
+            ctx.beginPath();
+            ctx.moveTo(mouseX - 10, mouseY);
+            ctx.lineTo(mouseX + 10, mouseY);
+            ctx.stroke();
+            
+            // 垂直线
+            ctx.beginPath();
+            ctx.moveTo(mouseX, mouseY - 10);
+            ctx.lineTo(mouseX, mouseY + 10);
+            ctx.stroke();
+        }
+
+        // 更新资源收集
+        function updateResourceCollection() {
+            const { player } = gameState;
+            
+            gameState.resources.forEach(resource => {
+                if (resource.respawnTimer <= 0) {
+                    // 计算玩家与资源的距离
+                    const dx = player.x + player.width/2 - (resource.x * TILE_SIZE + TILE_SIZE/2);
+                    const dy = player.y + player.height/2 - (resource.y * TILE_SIZE + TILE_SIZE/2);
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+                    
+                    // 如果玩家靠近资源并且正在攻击，则收集资源
+                    if (distance < TILE_SIZE * 1.5 && player.attacking) {
+                        // 根据工具类型决定收集速度
+                        const tool = player.inventory[player.selectedItem];
+                        if (tool && (tool.type === 'pickaxe' || tool.type === 'sword')) {
+                            // 收集资源
+                            resource.respawnTimer = 300; // 资源重生时间
+                            
+                            // 根据资源类型增加相应的物品
+                            if (resource.type === 'diamond') {
+                                player.inventory[0].count += 1; // 增加方块数量
+                                diamondsCount.textContent = parseInt(diamondsCount.textContent) + 1;
+                                showGameStatus('+1 钻石', 1000);
+                            } else if (resource.type === 'emerald') {
+                                player.inventory[0].count += 2; // 增加方块数量
+                                emeraldsCount.textContent = parseInt(emeraldsCount.textContent) + 1;
+                                showGameStatus('+1 绿宝石', 1000);
+                            } else {
+                                player.inventory[0].count += 5; // 增加方块数量
+                                showGameStatus(`+5 ${resource.type}`, 1000);
+                            }
+                            
+                            // 增加饱食度
+                            if (player.hunger < player.maxHunger) {
+                                player.hunger = Math.min(player.hunger + 1, player.maxHunger);
+                                updateHUD();
+                            }
+                        }
+                    }
+                } else {
+                    // 减少资源重生计时器
+                    resource.respawnTimer--;
+                }
+            });
+        }
+
+        // 更新项目
+        function updateProjectiles() {
+            for (let i = gameState.projectiles.length - 1; i >= 0; i--) {
+                const projectile = gameState.projectiles[i];
+                
+                // 更新位置
+                projectile.x += projectile.speedX;
+                projectile.y += projectile.speedY;
+                
+                // 检查是否击中地图
+                const tileX = Math.floor(projectile.x / TILE_SIZE);
+                const tileY = Math.floor(projectile.y / TILE_SIZE);
+                
+                if (tileX >= 0 && tileX < MAP_WIDTH && tileY >= 0 && tileY < MAP_HEIGHT) {
+                    if (gameState.map[tileY][tileX] !== 0) {
+                        // 击中地图，创建爆炸效果
+                        gameState.explosions.push({
+                            x: projectile.x,
+                            y: projectile.y,
+                            radius: TILE_SIZE * 1.5,
+                            progress: 0
+                        });
+                        
+                        // 移除箭矢
+                        gameState.projectiles.splice(i, 1);
+                        continue;
+                    }
+                }
+                
+                // 检查是否击中玩家
+                const { player } = gameState;
+                if (projectile.team !== player.team &&
+                    projectile.x < player.x + player.width &&
+                    projectile.x + projectile.width > player.x &&
+                    projectile.y < player.y + player.height &&
+                    projectile.y + projectile.height > player.y) {
+                    
+                    // 玩家受伤
+                    const damage = 3 - player.armor * 0.5; // 护甲减少伤害
+                    player.health -= Math.max(1, damage); // 至少造成1点伤害
+                    updateHUD();
+                    
+                    // 创建爆炸效果
+                    gameState.explosions.push({
+                        x: projectile.x,
+                        y: projectile.y,
+                        radius: TILE_SIZE * 1.2,
+                        progress: 0
+                    });
+                    
+                    // 移除箭矢
+                    gameState.projectiles.splice(i, 1);
+                    
+                    if (player.health <= 0) {
+                        playerDied();
+                    }
+                    
+                    continue;
+                }
+                
+                // 检查是否超出地图范围
+                if (projectile.x < 0 || projectile.x > MAP_WIDTH * TILE_SIZE ||
+                    projectile.y < 0 || projectile.y > MAP_HEIGHT * TILE_SIZE) {
+                    gameState.projectiles.splice(i, 1);
+                }
+            }
+        }
+
+        // 更新爆炸效果
+        function updateExplosions() {
+            for (let i = gameState.explosions.length - 1; i >= 0; i--) {
+                const explosion = gameState.explosions[i];
+                
+                // 更新进度
+                explosion.progress += 0.05;
+                
+                // 如果爆炸完成，移除它
+                if (explosion.progress >= 1) {
+                    gameState.explosions.splice(i, 1);
+                }
+            }
+        }
+
+        // 玩家死亡
+        function playerDied() {
+            // 检查床是否存在
+            const playerBed = gameState.beds.find(bed => bed.team === gameState.player.team);
+            
+            if (playerBed && !playerBed.destroyed) {
+                // 床存在，可以重生
+                showGameStatus('你已死亡，3秒后重生', 3000);
+                
+                setTimeout(() => {
+                    respawnPlayer();
+                }, 3000);
+            } else {
+                // 床已被摧毁，无法重生
+                deathScreen.classList.remove('hidden');
+            }
+        }
+
+        // 重生玩家
+        function respawnPlayer() {
+            const playerBed = gameState.beds.find(bed => bed.team === gameState.player.team);
+            
+            if (playerBed) {
+                // 设置重生位置
+                gameState.player.x = playerBed.x * TILE_SIZE + TILE_SIZE / 2;
+                gameState.player.y = playerBed.y * TILE_SIZE - TILE_SIZE * 2;
+                
+                // 恢复生命值和饱食度
+                gameState.player.health = gameState.player.maxHealth;
+                gameState.player.hunger = gameState.player.maxHunger;
+                
+                // 隐藏死亡屏幕
+                deathScreen.classList.add('hidden');
+                
+                // 更新HUD
+                updateHUD();
+                
+                // 显示重生提示
+                showGameStatus('已重生！', 2000);
+            }
+        }
+
+        // 重置游戏
+        function resetGame() {
+            // 重置玩家状态
+            gameState.player.health = gameState.player.maxHealth;
+            gameState.player.hunger = gameState.player.maxHunger;
+            gameState.player.armor = 0;
+            gameState.player.inventory = [
+                { type: 'block', count: 64 },
+                { type: 'pickaxe', level: 1 },
+                { type: 'sword', level: 1 },
+                { type: 'tnt', count: 3 },
+                { type: 'shield', level: 0 },
+                { type: 'bow', level: 0, arrows: 10 },
+                { type: 'special', count: 1 }
+            ];
+            gameState.player.selectedItem = 2;
+            
+            // 重置游戏状态
+            gameState.gameOver = false;
+            gameState.winner = null;
+            
+            // 重置床的状态
+            gameState.beds.forEach(bed => {
+                bed.destroyed = false;
+            });
+            
+            // 更新HUD
+            updateHUD();
+            diamondsCount.textContent = '0';
+            emeraldsCount.textContent = '0';
+            armorCount.textContent = '0';
+        }
+
+        // 显示游戏状态消息
+        function showGameStatus(message, duration = 2000) {
+            gameStatus.querySelector('span').textContent = message;
+            gameStatus.classList.remove('hidden');
+            
+            setTimeout(() => {
+                gameStatus.classList.add('hidden');
+            }, duration);
+        }
+
+        // 更新HUD
+        function updateHUD() {
+            const { player } = gameState;
+            
+            // 更新生命值条
+            const healthPercentage = (player.health / player.maxHealth) * 100;
+            healthBar.style.width = `${healthPercentage}%`;
+            healthValue.textContent = Math.round(player.health);
+            
+            // 更新饱食度条
+            const hungerPercentage = (player.hunger / player.maxHunger) * 100;
+            hungerBar.style.width = `${hungerPercentage}%`;
+            hungerValue.textContent = Math.round(player.hunger);
+            
+            // 更新护甲值
+            armorCount.textContent = player.armor;
+        }
+
+        // 辅助函数：加深颜色
+        function darkenColor(color, amount) {
+            // 简单的颜色加深函数
+            if (color.startsWith('#')) {
+                color = color.substring(1);
+            }
+            
+            let r = parseInt(color.substring(0, 2), 16);
+            let g = parseInt(color.substring(2, 4), 16);
+            let b = parseInt(color.substring(4, 6), 16);
+            
+            r = Math.max(0, r - amount);
+            g = Math.max(0, g - amount);
+            b = Math.max(0, b - amount);
+            
+            return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
+        }
+
+        // 初始化游戏
+        window.addEventListener('load', initGame);
+    </script>
+</body>
+</html>
+    

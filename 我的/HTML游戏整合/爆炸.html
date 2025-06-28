@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>爆炸游戏</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#3B82F6',
+                        secondary: '#10B981',
+                        accent: '#F59E0B',
+                        danger: '#EF4444',
+                        dark: '#1F2937',
+                    },
+                    fontFamily: {
+                        game: ['Arial', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .content-auto {
+                content-visibility: auto;
+            }
+            .game-shadow {
+                box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+            }
+            .grid-item-hover {
+                transition: all 0.2s ease;
+            }
+            .grid-item-hover:hover {
+                transform: scale(1.05);
+                z-index: 10;
+            }
+            .btn-pop {
+                transition: transform 0.15s ease;
+            }
+            .btn-pop:active {
+                transform: scale(0.95);
+            }
+            .score-change {
+                animation: scorePopup 1s ease-out forwards;
+            }
+            @keyframes scorePopup {
+                0% { opacity: 1; transform: translateY(0); }
+                100% { opacity: 0; transform: translateY(-20px); }
+            }
+            .explosion {
+                animation: explode 0.5s ease-out forwards;
+            }
+            @keyframes explode {
+                0% { transform: scale(1); opacity: 1; }
+                50% { transform: scale(1.5); opacity: 0.8; }
+                100% { transform: scale(0); opacity: 0; }
+            }
+            .particle {
+                position: absolute;
+                border-radius: 50%;
+                opacity: 0;
+                animation: particle 1s ease-out forwards;
+            }
+            @keyframes particle {
+                0% { transform: translate(0, 0); opacity: 1; }
+                100% { opacity: 0; }
+            }
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-slate-100 to-slate-200 min-h-screen font-game flex flex-col items-center justify-center p-4">
+    <div class="max-w-4xl w-full bg-white rounded-2xl p-6 md:p-8 game-shadow">
+        <header class="flex flex-col md:flex-row justify-between items-center mb-8">
+            <div class="mb-4 md:mb-0">
+                <h1 class="text-[clamp(1.8rem,5vw,2.5rem)] font-bold text-dark mb-1">爆炸游戏</h1>
+                <p class="text-slate-500 text-sm md:text-base">点击方块触发爆炸，相同颜色的相连方块会被清除并获得分数</p>
+            </div>
+            <div class="flex gap-3">
+                <button id="newGameBtn" class="bg-primary hover:bg-primary/90 text-white px-4 py-2 rounded-lg flex items-center gap-2 btn-pop transition-all">
+                    <i class="fa fa-refresh"></i>
+                    <span>新游戏</span>
+                </button>
+                <button id="howToPlayBtn" class="bg-slate-200 hover:bg-slate-300 text-slate-700 px-4 py-2 rounded-lg flex items-center gap-2 btn-pop transition-all">
+                    <i class="fa fa-question-circle"></i>
+                    <span>玩法</span>
+                </button>
+            </div>
+        </header>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div class="md:col-span-2">
+                <div id="gameContainer" class="relative w-full aspect-square bg-slate-50 rounded-xl overflow-hidden p-1">
+                    <div id="gameGrid" class="w-full h-full grid grid-cols-8 grid-rows-8 gap-1">
+                        <!-- 游戏格子将通过JS生成 -->
+                    </div>
+                    <div id="particlesContainer" class="absolute inset-0 pointer-events-none"></div>
+                </div>
+            </div>
+            <div class="flex flex-col gap-4">
+                <div class="bg-slate-50 rounded-xl p-4">
+                    <h2 class="text-lg font-semibold text-slate-700 mb-3">游戏信息</h2>
+                    <div class="space-y-3">
+                        <div class="flex justify-between items-center">
+                            <span class="text-slate-600">得分</span>
+                            <div class="flex items-center gap-2">
+                                <span id="score" class="text-xl font-bold text-primary"></span>
+                                <span id="scoreAddition"></span>
+                            </div>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-slate-600"></span>
+                            <span id="remainingBlocks" class="text-lg font-medium"></span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-slate-600">步数</span>
+                            <span id="moves" class="text-lg font-medium">0</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-slate-50 rounded-xl p-4">
+                    <h2 class="text-lg font-semibold text-slate-700 mb-3">颜色说明</h2>
+                    <div class="grid grid-cols-2 gap-2">
+                        <div class="flex items-center gap-2">
+                            <div class="w-4 h-4 rounded-full bg-red-500"></div>
+                            <span class="text-sm text-slate-600">红色 = 1分</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <div class="w-4 h-4 rounded-full bg-blue-500"></div>
+                            <span class="text-sm text-slate-600">蓝色 = 2分</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <div class="w-4 h-4 rounded-full bg-green-500"></div>
+                            <span class="text-sm text-slate-600">绿色 = 4分</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <div class="w-4 h-4 rounded-full bg-yellow-500"></div>
+                            <span class="text-sm text-slate-600">黄色 = 8分</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-slate-50 rounded-xl p-4">
+                    <h2 class="text-lg font-semibold text-slate-700 mb-3">游戏提示</h2>
+                    <p class="text-sm text-slate-600 leading-relaxed">
+                        点击一个方块，它会爆炸并清除所有相连的相同颜色方块。爆炸后，上方的方块会下落，新的方块会从顶部生成。尝试获得尽可能高的分数！
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="gameOverModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white rounded-2xl p-8 max-w-md w-full mx-4 game-shadow">
+            <div class="text-center">
+                <h2 class="text-2xl font-bold text-dark mb-2">游戏结束!</h2>
+                <p class="text-slate-600 mb-6">你的得分是</p>
+                <p id="finalScore" class="text-4xl font-bold text-primary mb-8">0</p>
+                <div class="flex gap-3 justify-center">
+                    <button id="playAgainBtn" class="bg-primary hover:bg-primary/90 text-white px-6 py-3 rounded-lg flex items-center gap-2 btn-pop transition-all">
+                        <i class="fa fa-play"></i>
+                        <span>再玩一次</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="howToPlayModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white rounded-2xl p-6 max-w-md w-full mx-4 game-shadow max-h-[90vh] overflow-y-auto">
+            <div class="flex justify-between items-start mb-4">
+                <h2 class="text-xl font-bold text-dark">游戏玩法</h2>
+                <button id="closeHowToPlayBtn" class="text-slate-400 hover:text-slate-600">
+                    <i class="fa fa-times text-xl"></i>
+                </button>
+            </div>
+            <div class="space-y-4 text-slate-600">
+                <p>爆炸游戏是一款简单但令人上瘾的益智游戏，目标是通过点击方块获得尽可能高的分数。</p>
+                <div class="bg-slate-50 p-3 rounded-lg">
+                    <h3 class="font-medium text-slate-800 mb-2">游戏规则:</h3>
+                    <ol class="list-decimal list-inside space-y-2">
+                        <li>点击一个方块，它会爆炸并清除所有与之相连的相同颜色方块。</li>
+                        <li>清除的方块越多，获得的分数越高。</li>
+                        <li>爆炸后，上方的方块会下落填补空缺，顶部会生成新的方块。</li>
+                        <li>当没有可点击的方块组合时，游戏结束。</li>
+                    </ol>
+                </div>
+                <div class="bg-slate-50 p-3 rounded-lg">
+                    <h3 class="font-medium text-slate-800 mb-2">得分规则:</h3>
+                    <ul class="list-disc list-inside space-y-1">
+                        <li>红色方块 = 1分/个</li>
+                        <li>蓝色方块 = 2分/个</li>
+                        <li>绿色方块 = 4分/个</li>
+                        <li>黄色方块 = 8分/个</li>
+                    </ul>
+                </div>
+                <p>尝试计划你的爆炸顺序，以获得连锁反应并清除更多方块！</p>
+            </div>
+            <div class="mt-6 text-center">
+                <button id="startPlayingBtn" class="bg-primary hover:bg-primary/90 text-white px-6 py-2 rounded-lg btn-pop transition-all">
+                    开始游戏
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // 游戏配置
+            const config = {
+                gridSize: 8,
+                colors: [
+                    { name: 'red', class: 'bg-red-500', points: 1 },
+                    { name: 'blue', class: 'bg-blue-500', points: 2 },
+                    { name: 'green', class: 'bg-green-500', points: 4 },
+                    { name: 'yellow', class: 'bg-yellow-500', points: 8 }
+                ]
+            };
+
+            // 游戏状态
+            let gameState = {
+                grid: [],
+                score: 0,
+                moves: 0,
+                remainingBlocks: config.gridSize * config.gridSize,
+                isGameOver: false,
+                isProcessing: false
+            };
+
+            // DOM元素
+            const gameGrid = document.getElementById('gameGrid');
+            const scoreElement = document.getElementById('score');
+            const scoreAdditionElement = document.getElementById('scoreAddition');
+            const movesElement = document.getElementById('moves');
+            const remainingBlocksElement = document.getElementById('remainingBlocks');
+            const gameOverModal = document.getElementById('gameOverModal');
+            const finalScoreElement = document.getElementById('finalScore');
+            const newGameBtn = document.getElementById('newGameBtn');
+            const playAgainBtn = document.getElementById('playAgainBtn');
+            const howToPlayBtn = document.getElementById('howToPlayBtn');
+            const howToPlayModal = document.getElementById('howToPlayModal');
+            const closeHowToPlayBtn = document.getElementById('closeHowToPlayBtn');
+            const startPlayingBtn = document.getElementById('startPlayingBtn');
+            const particlesContainer = document.getElementById('particlesContainer');
+
+            // 初始化游戏
+            function initGame() {
+                gameState = {
+                    grid: createGrid(),
+                    score: 0,
+                    moves: 0,
+                    remainingBlocks: config.gridSize * config.gridSize,
+                    isGameOver: false,
+                    isProcessing: false
+                };
+                renderGrid();
+                updateGameInfo();
+                gameOverModal.classList.add('hidden');
+                checkGameOver();
+            }
+
+            // 创建游戏网格
+            function createGrid() {
+                const grid = [];
+                for (let row = 0; row < config.gridSize; row++) {
+                    grid[row] = [];
+                    for (let col = 0; col < config.gridSize; col++) {
+                        const colorIndex = Math.floor(Math.random() * config.colors.length);
+                        grid[row][col] = colorIndex;
+                    }
+                }
+                return grid;
+            }
+
+            // 渲染游戏网格
+            function renderGrid() {
+                gameGrid.innerHTML = '';
+                for (let row = 0; row < config.gridSize; row++) {
+                    for (let col = 0; col < config.gridSize; col++) {
+                        const colorIndex = gameState.grid[row][col];
+                        if (colorIndex !== null) {
+                            const block = document.createElement('div');
+                            const color = config.colors[colorIndex];
+                            block.className = `rounded-md ${color.class} grid-item-hover cursor-pointer transition-all flex items-center justify-center text-white font-bold text-sm`;
+                            block.dataset.row = row;
+                            block.dataset.col = col;
+                            block.dataset.color = colorIndex;
+                            block.addEventListener('click', handleBlockClick);
+                            gameGrid.appendChild(block);
+                        } else {
+                            const emptyCell = document.createElement('div');
+                            emptyCell.className = 'rounded-md bg-transparent';
+                            gameGrid.appendChild(emptyCell);
+                        }
+                    }
+                }
+            }
+
+            // 处理方块点击
+            function handleBlockClick(event) {
+                if (gameState.isProcessing || gameState.isGameOver) return;
+                
+                const block = event.currentTarget;
+                const row = parseInt(block.dataset.row);
+                const col = parseInt(block.dataset.col);
+                const color = parseInt(block.dataset.color);
+                
+                // 查找所有相连的相同颜色方块
+                const connectedBlocks = findConnectedBlocks(row, col, color);
+                
+                // 如果只有一个方块，不执行爆炸
+                if (connectedBlocks.length <= 1) return;
+                
+                gameState.isProcessing = true;
+                
+                // 执行爆炸动画
+                explodeBlocks(connectedBlocks, () => {
+                    // 更新游戏状态
+                    updateGameState(connectedBlocks);
+                    
+                    // 下落方块
+                    dropBlocks();
+                    
+                    // 生成新方块
+                    generateNewBlocks();
+                    
+                    // 检查游戏是否结束
+                    checkGameOver();
+                    
+                    gameState.isProcessing = false;
+                });
+            }
+
+            // 查找相连的相同颜色方块
+            function findConnectedBlocks(startRow, startCol, color) {
+                const visited = new Set();
+                const queue = [[startRow, startCol]];
+                const result = [];
+                
+                while (queue.length > 0) {
+                    const [row, col] = queue.shift();
+                    const key = `${row},${col}`;
+                    
+                    if (visited.has(key)) continue;
+                    if (row < 0 || row >= config.gridSize || col < 0 || col >= config.gridSize) continue;
+                    if (gameState.grid[row][col] !== color) continue;
+                    
+                    visited.add(key);
+                    result.push([row, col]);
+                    
+                    // 检查上下左右四个方向
+                    queue.push([row - 1, col]); // 上
+                    queue.push([row + 1, col]); // 下
+                    queue.push([row, col - 1]); // 左
+                    queue.push([row, col + 1]); // 右
+                }
+                
+                return result;
+            }
+
+            // 执行爆炸动画
+            function explodeBlocks(blocks, callback) {
+                // 创建爆炸粒子效果
+                createParticles(blocks);
+                
+                // 执行方块爆炸动画
+                let count = 0;
+                blocks.forEach(([row, col]) => {
+                    const index = row * config.gridSize + col;
+                    const block = gameGrid.children[index];
+                    
+                    if (block) {
+                        block.classList.add('explosion');
+                        
+                        setTimeout(() => {
+                            block.style.display = 'none';
+                            count++;
+                            
+                            if (count === blocks.length && callback) {
+                                callback();
+                            }
+                        }, 500);
+                    }
+                });
+            }
+
+            // 创建爆炸粒子效果
+            function createParticles(blocks) {
+                blocks.forEach(([row, col]) => {
+                    const colorIndex = gameState.grid[row][col];
+                    const color = config.colors[colorIndex];
+                    
+                    // 计算方块在视口中的位置
+                    const blockIndex = row * config.gridSize + col;
+                    const block = gameGrid.children[blockIndex];
+                    
+                    if (block) {
+                        const rect = block.getBoundingClientRect();
+                        const gameContainerRect = gameContainer.getBoundingClientRect();
+                        
+                        const centerX = rect.left - gameContainerRect.left + rect.width / 2;
+                        const centerY = rect.top - gameContainerRect.top + rect.height / 2;
+                        
+                        // 创建多个粒子
+                        for (let i = 0; i < 15; i++) {
+                            const particle = document.createElement('div');
+                            particle.className = 'particle';
+                            
+                            // 随机粒子大小
+                            const size = Math.random() * 6 + 2;
+                            particle.style.width = `${size}px`;
+                            particle.style.height = `${size}px`;
+                            
+                            // 设置粒子颜色
+                            particle.style.backgroundColor = color.class === 'bg-yellow-500' 
+                                ? '#EAB308' 
+                                : window.getComputedStyle(document.documentElement).getPropertyValue(`--tw-${color.class}`);
+                            
+                            // 随机粒子方向和距离
+                            const angle = Math.random() * Math.PI * 2;
+                            const distance = Math.random() * 50 + 10;
+                            const destX = centerX + Math.cos(angle) * distance;
+                            const destY = centerY + Math.sin(angle) * distance;
+                            
+                            // 设置粒子初始位置
+                            particle.style.left = `${centerX}px`;
+                            particle.style.top = `${centerY}px`;
+                            
+                            // 设置粒子动画
+                            const duration = Math.random() * 0.5 + 0.5;
+                            particle.style.animationDuration = `${duration}s`;
+                            particle.style.animationDelay = `${i * 0.02}s`;
+                            
+                            // 设置粒子最终位置（通过CSS动画）
+                            particle.style.setProperty('--dest-x', `${destX}px`);
+                            particle.style.setProperty('--dest-y', `${destY}px`);
+                            
+                            particlesContainer.appendChild(particle);
+                            
+                            // 动画结束后移除粒子
+                            setTimeout(() => {
+                                particle.remove();
+                            }, (duration + 0.2) * 1000);
+                        }
+                    }
+                });
+            }
+
+            // 更新游戏状态
+            function updateGameState(blocks) {
+                // 计算得分
+                let points = 0;
+                blocks.forEach(([row, col]) => {
+                    const colorIndex = gameState.grid[row][col];
+                    const color = config.colors[colorIndex];
+                    points += color.points;
+                    
+                    // 从网格中移除方块
+                    gameState.grid[row][col] = null;
+                });
+                
+                // 更新分数
+                gameState.score += points;
+                gameState.moves++;
+                gameState.remainingBlocks -= blocks.length;
+                
+                // 显示分数增加动画
+                showScoreAddition(points);
+                
+                // 更新游戏信息
+                updateGameInfo();
+            }
+
+            // 显示分数增加动画
+            function showScoreAddition(points) {
+                scoreAdditionElement.textContent = `+${points}`;
+                scoreAdditionElement.classList.remove('hidden', 'score-change');
+                
+                // 触发重排以应用动画
+                void scoreAdditionElement.offsetWidth;
+                
+                scoreAdditionElement.classList.add('score-change');
+                
+                setTimeout(() => {
+                    scoreAdditionElement.classList.add('hidden');
+                }, 1000);
+            }
+
+            // 下落方块
+            function dropBlocks() {
+                for (let col = 0; col < config.gridSize; col++) {
+                    // 收集当前列中的所有方块
+                    const blocks = [];
+                    for (let row = 0; row < config.gridSize; row++) {
+                        if (gameState.grid[row][col] !== null) {
+                            blocks.push(gameState.grid[row][col]);
+                        }
+                    }
+                    
+                    // 重新填充列，底部先填充
+                    for (let row = config.gridSize - 1; row >= 0; row--) {
+                        if (blocks.length > 0) {
+                            gameState.grid[row][col] = blocks.pop();
+                        } else {
+                            gameState.grid[row][col] = null;
+                        }
+                    }
+                }
+                
+                // 渲染更新后的网格
+                renderGrid();
+            }
+
+            // 生成新方块
+            function generateNewBlocks() {
+                let newBlocksGenerated = false;
+                
+                for (let col = 0; col < config.gridSize; col++) {
+                    for (let row = 0; row < config.gridSize; row++) {
+                        if (gameState.grid[row][col] === null) {
+                            // 生成新方块
+                            const colorIndex = Math.floor(Math.random() * config.colors.length);
+                            gameState.grid[row][col] = colorIndex;
+                            newBlocksGenerated = true;
+                        }
+                    }
+                }
+                
+                if (newBlocksGenerated) {
+                    // 添加轻微延迟使动画更流畅
+                    setTimeout(() => {
+                        renderGrid();
+                    }, 100);
+                }
+            }
+
+            // 检查游戏是否结束
+            function checkGameOver() {
+                // 检查是否还有相连的相同颜色方块
+                for (let row = 0; row < config.gridSize; row++) {
+                    for (let col = 0; col < config.gridSize; col++) {
+                        const color = gameState.grid[row][col];
+                        if (color === null) continue;
+                        
+                        // 检查右侧和下方的方块
+                        if ((col + 1 < config.gridSize && gameState.grid[row][col + 1] === color) ||
+                            (row + 1 < config.gridSize && gameState.grid[row + 1][col] === color)) {
+                            return; // 还有可消除的方块，游戏继续
+                        }
+                    }
+                }
+                
+                // 没有可消除的方块，游戏结束
+                gameState.isGameOver = true;
+                setTimeout(() => {
+                    finalScoreElement.textContent = gameState.score;
+                    gameOverModal.classList.remove('hidden');
+                }, 500);
+            }
+
+            // 更新游戏信息
+            function updateGameInfo() {
+                scoreElement.textContent = gameState.score;
+                movesElement.textContent = gameState.moves;
+                remainingBlocksElement.textContent = gameState.remainingBlocks;
+            }
+
+            // 事件监听器
+            newGameBtn.addEventListener('click', initGame);
+            playAgainBtn.addEventListener('click', initGame);
+            howToPlayBtn.addEventListener('click', () => {
+                howToPlayModal.classList.remove('hidden');
+            });
+            closeHowToPlayBtn.addEventListener('click', () => {
+                howToPlayModal.classList.add('hidden');
+            });
+            startPlayingBtn.addEventListener('click', () => {
+                howToPlayModal.classList.add('hidden');
+            });
+
+            // 初始化游戏
+            initGame();
+        });
+    </script>
+</body>
+</html>
+    

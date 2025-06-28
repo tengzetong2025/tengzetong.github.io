@@ -1,0 +1,611 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>滕泽同的个人主页</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.8/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/particles.js@2.0.0/particles.min.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#73a6ff',
+                        secondary: '#ff99cc',
+                        dark: '#f5f5f5',
+                        'dark-light': '#e0e0e0',
+                        'glass': 'rgba(255, 255, 255, 0.7)',
+                    },
+                    fontFamily: {
+                        inter: ['Inter', 'sans-serif'],
+                    },
+                    animation: {
+                        'float': 'float 6s ease-in-out infinite',
+                        'pulse-slow': 'pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                        'bounce-slow': 'bounce 3s infinite',
+                    },
+                    keyframes: {
+                        float: {
+                            '0%, 100%': { transform: 'translateY(0)' },
+                            '50%': { transform: 'translateY(-20px)' },
+                        }
+                    }
+                },
+            }
+        }
+    </script>
+
+    <style type="text/tailwindcss">
+        body {
+            background-image: linear-gradient(135deg, #e1f5fe 0%, #f3e5f5 100%);
+        }
+
+        @layer utilities {
+            .content-auto {
+                content-visibility: auto;
+            }
+
+            .text-shadow {
+                text-shadow: 0 0 10px rgba(115, 166, 255, 0.7);
+            }
+
+            .text-gradient {
+                background-clip: text;
+                -webkit-background-clip: text;
+                color: transparent;
+            }
+
+            .bg-glass {
+                backdrop-filter: blur(10px);
+                -webkit-backdrop-filter: blur(10px);
+                background-color: rgba(255, 255, 255, 0.3);
+            }
+
+            .border-glass {
+                border: 1px solid rgba(255, 255, 255, 0.5);
+            }
+
+            .rotate-hover {
+                transition: transform 0.5s ease;
+            }
+
+            .rotate-hover:hover {
+                transform: rotate(5deg) scale(1.05);
+            }
+
+            .custom-scrollbar::-webkit-scrollbar {
+                width: 6px;
+            }
+
+            .custom-scrollbar::-webkit-scrollbar-track {
+                background: rgba(224, 224, 224, 0.5);
+            }
+
+            .custom-scrollbar::-webkit-scrollbar-thumb {
+                background: rgba(115, 166, 255, 0.5);
+                border-radius: 3px;
+            }
+        }
+    </style>
+</head>
+
+<body class="font-inter bg-gradient-to-br from-dark to-dark-light text-gray-700 min-h-screen overflow-x-hidden custom-scrollbar">
+    <!-- 密码验证弹窗 -->
+    <div id="password-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-gray-900 bg-opacity-75">
+        <div class="bg-white p-8 rounded-lg shadow-lg max-w-md w-full transform transition-all duration-500">
+            <div class="text-center mb-6">
+                <div class="w-16 h-16 mx-auto bg-primary/20 rounded-full flex items-center justify-center mb-4">
+                    <i class="fa fa-lock text-2xl text-primary"></i>
+                </div>
+                <h1 class="text-xl font-bold">安全访问</h1>
+                <p class="text-gray-500 text-sm">请输入密码以访问内容</p>
+            </div>
+            
+            <div class="space-y-4">
+                <div class="relative">
+                    <input type="password" id="password-input" class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all" placeholder="输入密码...">
+                    <button id="toggle-password" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-primary transition-colors">
+                        <i class="fa fa-eye-slash"></i>
+                    </button>
+                </div>
+                
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center">
+                        <input type="checkbox" id="remember-password" class="w-4 h-4 text-primary focus:ring-primary/50 rounded">
+                        <label for="remember-password" class="ml-2 text-sm text-gray-600">记住密码</label>
+                    </div>
+                    <button id="password-submit" class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors flex items-center gap-2">
+                        <i class="fa fa-unlock-alt"></i> 解锁
+                    </button>
+                </div>
+                
+                <div id="password-error" class="hidden text-red-500 text-sm flex items-center gap-2">
+                    <i class="fa fa-exclamation-circle"></i>
+                    <span>密码错误，请重试</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 粒子背景容器 -->
+    <div id="particles-js" class="fixed inset-0 z-0"></div>
+
+    <!-- 主内容容器 -->
+    <div id="main-content" class="relative z-10 container mx-auto px-4 py-12 hidden">
+        <!-- 顶部导航栏 -->
+        <header class="bg-glass border-glass rounded-xl p-4 mb-16 shadow-lg shadow-primary/20 transition-all duration-500 hover:shadow-primary/30">
+            <nav class="flex justify-between items-center">
+                <div class="text-2xl font-bold text-gradient bg-gradient-to-r from-primary to-secondary">
+                    学渣的梦
+                </div>
+
+                <div class="hidden md:flex space-x-8">
+                    <a href="#about" class="hover:text-primary transition-colors duration-300 flex items-center gap-2">
+                        <i class="fa fa-user-circle-o"></i> 关于我
+                    </a>
+                    <a href="#skills" class="hover:text-primary transition-colors duration-300 flex items-center gap-2">
+                        <i class="fa fa-code"></i> 常用网页
+                    </a>
+                    <a href="#projects" class="hover:text-primary transition-colors duration-300 flex items-center gap-2">
+                        <i class="fa fa-briefcase"></i> 项目
+                    </a>
+
+                    <a href="#contact" class="hover:text-primary transition-colors duration-300 flex items-center gap-2">
+                        <i class="fa fa-envelope-o"></i> 切勿侵权
+                    </a>
+                </div>
+
+                <button id="menu-toggle" class="md:hidden text-2xl">
+                    <i class="fa fa-bars"></i>
+                </button>
+            </nav>
+
+            <!-- 移动端菜单 -->
+            <div id="mobile-menu" class="md:hidden hidden mt-4 pb-2">
+                <a href="#about" class="block py-2 hover:text-primary transition-colors duration-300">
+                    <i class="fa fa-user-circle-o mr-2"></i> 关于我
+                </a>
+                <a href="#skills" class="block py-2 hover:text-primary transition-colors duration-300">
+                    <i class="fa fa-code mr-2"></i> 常用网页
+                </a>
+                <a href="#projects" class="block py-2 hover:text-primary transition-colors duration-300">
+                    <i class="fa fa-briefcase mr-2"></i> 项目
+                </a>
+
+                <a href="#contact" class="block py-2 hover:text-primary transition-colors duration-300">
+                    <i class="fa fa-envelope-o mr-2"></i> 切勿侵权
+                </a>
+            </div>
+        </header>
+
+        <!-- 英雄区域 -->
+        <section id="hero" class="mb-20">
+            <div class="bg-glass border-glass rounded-2xl p-8 md:p-12 shadow-xl shadow-primary/20 relative overflow-hidden group">
+                <div class="absolute top-0 right-0 w-64 h-64 bg-primary/20 rounded-full filter blur-3xl -mr-32 -mt-32 transition-all duration-700 group-hover:scale-125"></div>
+                <div class="absolute bottom-0 left-0 w-64 h-64 bg-secondary/20 rounded-full filter blur-3xl -ml-32 -mb-32 transition-all duration-700 group-hover:scale-125"></div>
+
+                <div class="relative flex flex-col md:flex-row items-center gap-8">
+                    <div class="w-full md:w-1/2 text-center md:text-left">
+                        <h1 class="text-[clamp(2.5rem,5vw,4rem)] font-bold leading-tight mb-4 text-shadow">
+                            你好，我是 <span class="text-gradient bg-gradient-to-r from-primary to-secondary">滕泽同</span>
+                        </h1>
+                        <p class="text-lg md:text-xl text-gray-500 mb-8 max-w-xl mx-auto md:mx-0">
+                            一名热衷于探索前沿技术的开发者，致力于创造独特的数字体验和互动游戏。
+                        </p>
+                        <div class="flex flex-wrap justify-center md:justify-start gap-4">
+                            <a href="#projects" class="px-6 py-3 bg-primary hover:bg-primary/90 rounded-lg shadow-lg shadow-primary/30 transition-all duration-300 hover:shadow-primary/50 hover:-translate-y-1 flex items-center gap-2">
+                                <i class="fa fa-rocket"></i> 查看项目
+                            </a>
+                            <a href="#contact" class="px-6 py-3 bg-transparent border border-primary text-primary hover:bg-primary/10 rounded-lg transition-all duration-300 hover:-translate-y-1 flex items-center gap-2">
+                                <i class="fa fa-paper-plane"></i> 切勿侵权
+                            </a>
+                        </div>
+                    </div>
+
+                    <div class="w-full md:w-1/2 flex justify-center">
+                        <div class="relative w-64 h-64 md:w-80 md:h-80 animate-float">
+                            <div class="absolute inset-0 bg-gradient-to-br from-primary to-secondary rounded-full opacity-20 blur-xl"></div>
+                            <div class="absolute inset-2 bg-dark-light rounded-full border-glass overflow-hidden">
+                                <img src="https://via.placeholder.com/400x400?text=Profile+Picture" alt="个人头像" class="w-full h-full object-cover mix-blend-luminosity hover:mix-blend-normal transition-all duration-700">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 关于我 -->
+        <section id="about" class="mb-20">
+            <h2 class="text-3xl md:text-4xl font-bold mb-12 text-center relative">
+                <span class="inline-block relative">
+                    关于我
+                    <div class="absolute -bottom-2 left-0 w-full h-1 bg-gradient-to-r from-primary to-secondary rounded-full"></div>
+                </span>
+            </h2>
+
+            <div class="bg-glass border-glass rounded-2xl p-8 md:p-12 shadow-xl shadow-primary/20 grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div class="space-y-6">
+                    <p class="text-lg text-gray-500">
+                        你好！我是一名对技术充满热情的学生，拥有超过5年的编程经验。我喜欢探索各种前沿技术，特别是在Web开发和游戏开发领域。
+                    </p>
+                    <p class="text-lg text-gray-500">
+                        我相信技术可以创造无限可能，因此不断挑战自我，学习新知识，尝试新领域。我的目标是通过创新的设计和高效的代码，创造出令人惊叹的用户体验。
+                    </p>
+                    <p class="text-lg text-gray-500">
+                        除了参与开源项目，我还喜欢分享知识和经验，与其他开发者交流合作。
+                    </p>
+
+                    <div class="pt-4">
+                        <h3 class="text-xl font-semibold mb-4">我的兴趣</h3>
+                        <div class="flex flex-wrap gap-3">
+                            <span class="px-4 py-2 bg-dark rounded-full text-sm border border-primary/30 hover:border-primary transition-colors duration-300">
+                                <i class="fa fa-code mr-1"></i> 编程
+                            </span>
+                            <span class="px-4 py-2 bg-dark rounded-full text-sm border border-primary/30 hover:border-primary transition-colors duration-300">
+                                <i class="fa fa-gamepad mr-1"></i> 游戏开发
+                            </span>
+                            <span class="px-4 py-2 bg-dark rounded-full text-sm border border-primary/30 hover:border-primary transition-colors duration-300">
+                                <i class="fa fa-music mr-1"></i> 音乐
+                            </span>
+                            <span class="px-4 py-2 bg-dark rounded-full text-sm border border-primary/30 hover:border-primary transition-colors duration-300">
+                                <i class="fa fa-book mr-1"></i> 阅读
+                            </span>
+                            <span class="px-4 py-2 bg-dark rounded-full text-sm border border-primary/30 hover:border-primary transition-colors duration-300">
+                                <i class="fa fa-mountain mr-1"></i> 我的世界
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex flex-col justify-center">
+                    <div class="bg-dark rounded-xl p-6 border-glass">
+                        <h3 class="text-xl font-semibold mb-6 flex items-center gap-2">
+                            <i class="fa fa-birthday-cake text-primary"></i> 基本信息
+                        </h3>
+                        <div class="space-y-4">
+                            <div class="flex items-center gap-4">
+                                <div class="w-20 text-gray-400">姓名:</div>
+                                <div class="font-medium">滕泽同</div>
+                            </div>
+                            <div class="flex items-center gap-4">
+                                <div class="w-20 text-gray-400">年龄:</div>
+                                <div class="font-medium">12岁</div>
+                            </div>
+                            <div class="flex items-center gap-4">
+                                <div class="w-20 text-gray-400">职业:</div>
+                                <div class="font-medium">学生</div>
+                            </div>
+                            <div class="flex items-center gap-4">
+                                <div class="w-20 text-gray-400">邮箱:</div>
+                                <div class="font-medium text-primary hover:underline cursor-pointer">252741766@qq.com</div>
+                            </div>
+                            <div class="flex items-center gap-4">
+                                <div class="w-20 text-gray-400">地点:</div>
+                                <div class="font-medium">宁波市</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 技能部分 -->
+        <section id="skills" class="mb-20">
+            <h2 class="text-3xl md:text-4xl font-bold mb-12 text-center relative">
+                <span class="inline-block relative">
+                    常用网页
+                    <div class="absolute -bottom-2 left-0 w-full h-1 bg-gradient-to-r from-primary to-secondary rounded-full"></div>
+                </span>
+            </h2>
+
+            <div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                    <div class="bg-glass border-glass rounded-xl p-6 shadow-lg shadow-primary/10 hover:shadow-primary/20 transition-all duration-800 hover:-translate-y-1 rotate-hover">
+                        <div class="w-14 h-14 rounded-xl bg-primary/20 flex items-center justify-center mb-4">
+                            <i class="fa fa-code text-2xl text-primary"></i>
+                        </div>
+                        <a href="https://blog.csdn.net" class="text-xl font-semibold mb-2">csdn博客</a>
+                        <p class="text-gray-400 mb-4">代码参考</p>
+                        <div class="flex flex-wrap gap-2">
+                            <a href="https://blog.csdn.net/nbtzt?spm=1000.2115.3001.5343" class="text-xl font-semibold mb-2">我的博客</a>
+                            <a href="https://mpbeta.csdn.net/mp_blog/creation/editor?spm=1001.2014.3001.52" class="text-xl font-semibold mb-2">写文章</a>
+                        </div>
+                    </div>
+
+                    <div class="bg-glass border-glass rounded-xl p-6 shadow-lg shadow-primary/10 hover:shadow-primary/20 transition-all duration-800 hover:-translate-y-1 rotate-hover">
+                        <div class="w-14 h-14 rounded-xl bg-secondary/20 flex items-center justify-center mb-4">
+                            <i class="fa fa-server text-2xl text-secondary"></i>
+                        </div>
+                        <a href="https://www.luogu.com.cn/" class="text-xl font-semibold mb-2">洛谷</a>
+                        <p class="text-gray-400 mb-4">刷题与学习</p>
+                        <div class="flex flex-wrap gap-2">
+                            <a href="https://www.luogu.com.cn/problem/list" class="text-xl font-semibold mb-2">题库</a>
+                            <a href="https://www.luogu.com.cn/user/1654745" class="text-xl font-semibold mb-2">我的洛谷</a>
+                        </div>
+                    </div>
+
+                    <div class="bg-glass border-glass rounded-xl p-6 shadow-lg shadow-primary/10 hover:shadow-primary/20 transition-all duration-800 hover:-translate-y-1 rotate-hover">
+                        <div class="w-14 h-14 rounded-xl bg-secondary/20 flex items-center justify-center mb-4">
+                            <i class="fa fa-server text-2xl text-secondary"></i>
+                        </div>
+                        <a href="https://www.luogu.com.cn/" class="text-xl font-semibold mb-2">未来号编程</a>
+                        <p class="text-gray-400 mb-4">刷题与学习</p>
+                        <div class="flex flex-wrap gap-2">
+                            <p>这里藏着一些不可告人的秘密……</p>
+                        </div>
+                    </div>
+
+                    <div class="bg-glass border-glass rounded-xl p-6 shadow-lg shadow-primary/10 hover:shadow-primary/20 transition-all duration-800 hover:-translate-y-1 rotate-hover">
+                        <div class="w-14 h-14 rounded-xl bg-primary/20 flex items-center justify-center mb-4">
+                            <i class="fa fa-gamepad text-2xl text-primary"></i>
+                        </div>
+                        <a href="http://oj.wlhcode.com/problemset.php?page=1" class="text-xl font-semibold mb-2">HTML游戏</a>
+                        <p class="text-gray-400 mb-4">来点好玩的</p>
+                        <div class="flex flex-wrap gap-2">
+                            <a href="#" class="text-sm text-primary hover:underline">五子棋</a>
+                            <a href="#" class="text-sm text-primary hover:underline">小球</a>
+                            <a href="#" class="text-sm text-primary hover:underline">爆炸</a>
+                            <a href="#" class="text-sm text-primary hover:underline">bloxd-clone</a>
+                            <a href="#" class="text-sm text-primary hover:underline">mc</a>
+                        </div>
+                    </div>
+
+                    <div class="bg-glass border-glass rounded-xl p-6 shadow-lg shadow-primary/10 hover:shadow-primary/20 transition-all duration-800 hover:-translate-y-1 rotate-hover">
+                        <div class="w-14 h-14 rounded-xl bg-secondary/20 flex items-center justify-center mb-4">
+                            <i class="fa fa-cogs text-2xl text-secondary"></i>
+                        </div>
+                        <a href="https://www.doubao.com/chat" class="text-xl font-semibold mb-2">豆包</a>
+                        <p class="text-gray-400 mb-4">AI</p>
+                        <div class="flex flex-wrap gap-2">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 项目展示 -->
+        <section id="projects" class="mb-20">
+            <h2 class="text-3xl md:text-4xl font-bold mb-12 text-center relative">
+                <span class="inline-block relative">
+                    我的项目
+                    <div class="absolute -bottom-2 left-0 w-full h-1 bg-gradient-to-r from-primary to-secondary rounded-full"></div>
+                </span>
+            </h2>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <!-- 项目卡片 1 -->
+                <div class="bg-glass border-glass rounded-xl overflow-hidden shadow-xl shadow-primary/20 group">
+                    <div class="relative h-56 overflow-hidden">
+                        <img src="https://picsum.photos/800/400" alt="响应式图片" style="width:100%; height:auto;">
+                        <div class="absolute inset-0 bg-gradient-to-t from-dark to-transparent opacity-70"></div>
+                        <div class="absolute bottom-4 left-4 right-4">
+                        </div>
+                    </div>
+
+                    <div class="p-6">
+                        <h3 class="text-xl font-semibold mb-2 group-hover:text-primary transition-colors duration-300">chat（新品！）</h3>
+                        <p class="text-gray-400 mb-4">使用服务器搭建，可聊天、传文件，无需互联网，基于局域网运行</p>
+
+                        <div class="flex justify-between items-center">
+                            <div class="flex gap-2">
+                                <span class="text-xs text-gray-500 flex items-center">
+                                    <i class="fa fa-star text-yellow-500 mr-1"></i> 245
+                                </span>
+                                <span class="text-xs text-gray-500 flex items-center">
+                                    <i class="fa fa-code-fork mr-1"></i> 87
+                                </span>
+                            </div>
+
+                            <a href="#" class="text-primary hover:text-primary/80 flex items-center gap-1 transition-colors duration-300">
+                                查看详情 <i class="fa fa-arrow-right ml-1"></i>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 项目卡片 2 -->
+                <div class="bg-glass border-glass rounded-xl overflow-hidden shadow-xl shadow-primary/20 group">
+                    <div class="relative h-56 overflow-hidden">
+                        <img src="https://picsum.photos/800/400" alt="" style="width:100%; height:auto;">
+                        <div class="absolute inset-0 bg-gradient-to-t from-dark to-transparent opacity-70"></div>
+                        <div class="absolute bottom-4 left-4 right-4">
+                        </div>
+                    </div>
+
+                    <div class="p-6">
+                        <h3 class="text-xl font-semibold mb-2 group-hover:text-primary transition-colors duration-300">HTML游戏</h3>
+                        <p class="text-gray-400 mb-4">多种游戏，支持所有浏览器。</p>
+
+                        <div class="flex justify-between items-center">
+                            <div class="flex gap-2">
+                                <span class="text-xs text-gray-500 flex items-center">
+                                    <i class="fa fa-star text-yellow-500 mr-1"></i> 189
+                                </span>
+                                <span class="text-xs text-gray-500 flex items-center">
+                                    <i class="fa fa-code-fork mr-1"></i> 56
+                                </span>
+                            </div>
+
+                            <a href="#" class="text-primary hover:text-primary/80 flex items-center gap-1 transition-colors duration-300">
+                                查看详情 <i class="fa fa-arrow-right ml-1"></i>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 项目卡片 3 -->
+                <div class="bg-glass border-glass rounded-xl overflow-hidden shadow-xl shadow-primary/20 group">
+                    <div class="relative h-56 overflow-hidden">
+                        <img src="https://picsum.photos/600/400" alt="">
+                        <div class="absolute inset-0 bg-gradient-to-t from-dark to-transparent opacity-70"></div>
+                        <div class="absolute bottom-4 left-4 right-4">
+                        </div>
+                    </div>
+
+                    <div class="p-6">
+                        <h3 class="text-xl font-semibold mb-2 group-hover:text-primary transition-colors duration-300">哈利波特游戏</h3>
+                        <p class="text-gray-400 mb-4">使用Python开发的文字版哈利波特游戏，包含咒语</p>
+
+                        <div class="flex justify-between items-center">
+                            <div class="flex gap-2">
+                                <span class="text-xs text-gray-500 flex items-center">
+                                    <i class="fa fa-star text-yellow-500 mr-1"></i> 320
+                                </span>
+                                <span class="text-xs text-gray-500 flex items-center">
+                                    <i class="fa fa-code-fork mr-1"></i> 120
+                                </span>
+                            </div>
+
+                            <a href="#" class="text-primary hover:text-primary/80 flex items-center gap-1 transition-colors duration-300">
+                                查看详情 <i class="fa fa-arrow-right ml-1"></i>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 项目卡片 4 -->
+                <div class="bg-glass border-glass rounded-xl overflow-hidden shadow-xl shadow-primary/20 group">
+                    <div class="relative h-56 overflow-hidden">
+                        <img src="https://picsum.photos/600/400" alt="">
+                        <div class="absolute inset-0 bg-gradient-to-t from-dark to-transparent opacity-70"></div>
+                        <div class="absolute bottom-4 left-4 right-4">
+                        </div>
+                    </div>
+
+                    <div class="p-6">
+                        <h3 class="text-xl font-semibold mb-2 group-hover:text-primary transition-colors duration-300">局域网聊天</h3>
+                        <p class="text-gray-400 mb-4">局域网聊天</p>
+
+                        <div class="flex justify-between items-center">
+                            <div class="flex gap-2">
+                                <span class="text-xs text-gray-500 flex items-center">
+                                    <i class="fa fa-star text-yellow-500 mr-1"></i> 278
+                                </span>
+                                <span class="text-xs text-gray-500 flex items-center">
+                                    <i class="fa fa-code-fork mr-1"></i> 92
+                                </span>
+                            </div>
+
+                            <a href="#" class="text-primary hover:text-primary/80 flex items-center gap-1 transition-colors duration-300">
+                                查看详情 <i class="fa fa-arrow-right ml-1"></i>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 项目卡片 5 -->
+                <div class="bg-glass border-glass rounded-xl overflow-hidden shadow-xl shadow-primary/20 group">
+                    <div class="relative h-56 overflow-hidden">
+                        <img src="https://picsum.photos/600/400" alt="">
+                        <div class="absolute inset-0 bg-gradient-to-t from-dark to-transparent opacity-70"></div>
+                        <div class="absolute bottom-4 left-4 right-4">
+                        </div>
+                    </div>
+
+                    <div class="p-6">
+                        <h3 class="text-xl font-semibold mb-2 group-hover:text-primary transition-colors duration-300">破解极域</h3>
+                        <p class="text-gray-400 mb-4">基于极域教师系统，支持远程攻击。</p>
+
+                        <div class="flex justify-between items-center">
+                            <div class="flex gap-2">
+                                <span class="text-xs text-gray-500 flex items-center">
+                                    <i class="fa fa-star text-yellow-500 mr-1"></i> 156
+                                </span>
+                                <span class="text-xs text-gray-500 flex items-center">
+                                    <i class="fa fa-code-fork mr-1"></i> 42
+                                </span>
+                            </div>
+
+                            <a href="#" class="text-primary hover:text-primary/80 flex items-center gap-1 transition-colors duration-300">
+                                查看详情 <i class="fa fa-arrow-right ml-1"></i>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 项目卡片 6 -->
+                <div class="bg-glass border-glass rounded-xl overflow-hidden shadow-xl shadow-primary/20 group">
+                    <div class="relative h-56 overflow-hidden">
+                        <img src="https://picsum.photos/600/400" alt="">
+                        <div class="absolute inset-0 bg-gradient-to-t from-dark to-transparent opacity-70"></div>
+                        <div class="absolute bottom-4 left-4 right-4">
+                        </div>
+                    </div>
+
+                    <div class="p-6">
+                        <h3 class="text-xl font-semibold mb-2 group-hover:text-primary transition-colors duration-300">所有文件整合（包含约20个）</h3>
+                        <p class="text-gray-400 mb-4">我庄严宣誓我不干好事</p>
+
+                        <div class="flex justify-between items-center">
+                            <div class="flex gap-2">
+                                <span class="text-xs text-gray-500 flex items-center">
+                                    <i class="fa fa-star text-yellow-500 mr-1"></i> 215
+                                </span>
+                                <span class="text-xs text-gray-500 flex items-center">
+                                    <i class="fa fa-code-fork mr-1"></i> 68
+                                </span>
+                            </div>
+
+                            <a href="#" class="text-primary hover:text-primary/80 flex items-center gap-1 transition-colors duration-300">
+                                查看详情 <i class="fa fa-arrow-right ml-1"></i>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="text-center mt-12">
+                <a href="#" class="inline-flex items-center gap-2 px-6 py-3 bg-primary hover:bg-primary/90 rounded-lg shadow-lg shadow-primary/30 transition-all duration-300 hover:shadow-primary/50 hover:-translate-y-1">
+                    敬请期待！ <i class="fa fa-arrow-right"></i>
+                </a>
+            </div>
+        </section>
+
+        <!-- 联系部分 -->
+        <section id="contact" class="mb-20">
+            <h2 class="text-3xl md:text-4xl font-bold mb-12 text-center relative">
+                <span class="inline-block relative">
+                    切勿侵权
+                    <div class="absolute -bottom-2 left-0 w-full h-1 bg-gradient-to-r from-primary to-secondary rounded-full"></div>
+                </span>
+            </h2>
+
+            <div class="bg-glass border-glass rounded-2xl p-8 md:p-12 shadow-xl shadow-primary/20 max-w-3xl mx-auto">
+                <div class="text-center mb-8">
+                    <p class="text-lg text-gray-500 max-w-xl mx-auto">
+                        本站所有内容仅供个人学习研究使用，未经许可，请勿转载或用于商业用途。
+                    </p>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div class="space-y-6">
+                        <div class="bg-dark rounded-xl p-6 border-glass">
+                            <h3 class="text-xl font-semibold mb-4 flex items-center gap-2">
+                                <i class="fa fa-shield text-primary"></i> 版权信息
+                            </h3>
+                            <p class="text-gray-500">
+                                本站所有内容（包括但不限于文字、图片、代码等）版权均归滕泽同所有。
+                            </p>
+                        </div>
+
+                        <div class="bg-dark rounded-xl p-6 border-glass">
+                            <h3 class="text-xl font-semibold mb-4 flex items-center gap-2">
+                                <i class="fa fa-info-circle text-primary"></i> 免责声明
+                            </h3>
+                            <p class="text-gray-500">
+                                本站内容仅供学习交流使用，如有侵权，请联系我删除。
+                            </p>
+                        </div>
+                    </div>
+
+                    <div>
+                        <div class="bg-dark rounded-xl p-6 border-glass">
+                            <h3 class="text-xl font-sem
