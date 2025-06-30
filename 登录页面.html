@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>密码验证</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#165DFF',
+                        secondary: '#6B7280',
+                        success: '#36D399',
+                        danger: '#F87272',
+                    },
+                    fontFamily: {
+                        inter: ['Inter', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .content-auto {
+                content-visibility: auto;
+            }
+            .bg-gradient-custom {
+                background: linear-gradient(135deg, #165DFF 0%, #3B82F6 100%);
+            }
+            .text-shadow {
+                text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            }
+            .card-shadow {
+                box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+            }
+        }
+    </style>
+</head>
+<body class="min-h-screen bg-gray-50 font-inter flex items-center justify-center p-4">
+    <div class="relative w-full max-w-md">
+        <!-- 装饰元素 -->
+        <div class="absolute -top-10 -right-10 w-40 h-40 bg-primary/10 rounded-full blur-2xl"></div>
+        <div class="absolute -bottom-10 -left-10 w-40 h-40 bg-primary/10 rounded-full blur-2xl"></div>
+        
+        <div class="relative bg-white rounded-2xl p-8 card-shadow overflow-hidden">
+            <!-- 顶部装饰 -->
+            <div class="absolute top-0 left-0 right-0 h-2 bg-gradient-custom"></div>
+            
+            <div class="text-center mb-8">
+                <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary/10 mb-4">
+                    <i class="fa fa-lock text-2xl text-primary"></i>
+                </div>
+                <h2 class="text-[clamp(1.5rem,3vw,2rem)] font-bold text-gray-800 text-shadow">需要密码</h2>
+                <p class="text-gray-500 mt-2">请输入密码访问内容</p>
+            </div>
+            
+            <form id="passwordForm" class="space-y-6">
+                <div class="relative">
+                    <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                        <i class="fa fa-key text-gray-400"></i>
+                    </div>
+                    <input type="password" id="password" placeholder="请输入密码" 
+                        class="w-full pl-10 pr-10 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all duration-300"
+                        required>
+                    <button type="button" id="togglePassword" class="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-gray-600 transition-colors">
+                        <i class="fa fa-eye-slash"></i>
+                    </button>
+                </div>
+                
+                <button type="submit" 
+                    class="w-full bg-gradient-custom text-white py-3 px-4 rounded-lg font-medium shadow-lg shadow-primary/20 hover:shadow-xl hover:shadow-primary/30 transform hover:-translate-y-1 transition-all duration-300 flex items-center justify-center">
+                    <span>验证</span>
+                    <i class="fa fa-arrow-right ml-2"></i>
+                </button>
+                
+                <div id="errorMessage" class="hidden text-danger text-sm text-center p-3 bg-danger/10 rounded-lg border border-danger/20">
+                    <i class="fa fa-exclamation-circle mr-1"></i>
+                    <span>密码错误，请重试</span>
+                </div>
+            </form>
+            
+            <div class="mt-8 text-center text-sm text-gray-500">
+                <p>遇到问题？请联系管理员</p>
+            </div>
+        </div>
+        
+        <div class="mt-6 text-center text-xs text-gray-400">
+            <p>© 2025 安全访问系统</p>
+        </div>
+    </div>
+
+    <script>
+        // 密码和目标URL配置
+        const config = {
+            password: "tzt123456", // 请在此处设置您的密码
+            targetUrl: "file:///C:/Users/25274/Desktop/%E6%88%91%E7%9A%84/%E4%B8%BB%E9%A1%B5.html" // 请在此处设置目标URL
+        };
+        
+        // DOM元素
+        const passwordForm = document.getElementById('passwordForm');
+        const passwordInput = document.getElementById('password');
+        const togglePasswordBtn = document.getElementById('togglePassword');
+        const errorMessage = document.getElementById('errorMessage');
+        
+        // 切换密码可见性
+        togglePasswordBtn.addEventListener('click', function() {
+            const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+            passwordInput.setAttribute('type', type);
+            
+            // 切换图标
+            const icon = togglePasswordBtn.querySelector('i');
+            if (type === 'text') {
+                icon.classList.remove('fa-eye-slash');
+                icon.classList.add('fa-eye');
+            } else {
+                icon.classList.remove('fa-eye');
+                icon.classList.add('fa-eye-slash');
+            }
+        });
+        
+        // 表单提交处理
+        passwordForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            // 验证密码
+            if (passwordInput.value === config.password) {
+                // 密码正确，显示成功动画
+                const submitBtn = passwordForm.querySelector('button[type="submit"]');
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> 验证中...';
+                
+                // 模拟验证延迟
+                setTimeout(() => {
+                    // 跳转到目标URL
+                    window.location.href = config.targetUrl;
+                }, 1000);
+            } else {
+                // 密码错误，显示错误信息
+                errorMessage.classList.remove('hidden');
+                
+                // 添加错误动画
+                passwordInput.classList.add('border-danger');
+                passwordInput.classList.add('animate-shake');
+                
+                // 3秒后隐藏错误信息
+                setTimeout(() => {
+                    errorMessage.classList.add('hidden');
+                    passwordInput.classList.remove('border-danger');
+                    passwordInput.classList.remove('animate-shake');
+                }, 3000);
+                
+                // 清空密码输入框并聚焦
+                passwordInput.value = '';
+                passwordInput.focus();
+            }
+        });
+        
+        // 添加抖动动画
+        document.head.insertAdjacentHTML('beforeend', `
+            <style>
+                @keyframes shake {
+                    0%, 100% { transform: translateX(0); }
+                    10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+                    20%, 40%, 60%, 80% { transform: translateX(5px); }
+                }
+                .animate-shake {
+                    animation: shake 0.5s ease-in-out;
+                }
+            </style>
+        `);
+    </script>
+</body>
+</html>
+    
